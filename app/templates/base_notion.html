@@ -1,0 +1,5283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Notion Clone{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" rel="stylesheet" id="code-theme-light">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" rel="stylesheet" id="code-theme-dark" disabled>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f7f6f3;
+            --bg-sidebar: #fbfbfa;
+            --bg-hover: #efefef;
+            --bg-active: #e8e8e8;
+            --bg-selection: #d3e5ef;
+            --text-primary: #37352f;
+            --text-secondary: #787774;
+            --text-muted: #9b9a97;
+            --border-color: #e9e9e7;
+            --accent-color: #2383e2;
+            --accent-hover: #0b6bcb;
+            --sidebar-width: 240px;
+            --header-height: 45px;
+            --red: #e03e3e;
+            --orange: #d9730d;
+            --yellow: #dfab01;
+            --green: #0f7b6c;
+            --blue: #0b6e99;
+            --purple: #6940a5;
+            --pink: #ad1a72;
+            --brown: #64473a;
+            --gray: #9b9a97;
+            --red-bg: #fbe4e4;
+            --orange-bg: #fbead6;
+            --yellow-bg: #fbf3db;
+            --green-bg: #ddedea;
+            --blue-bg: #ddebf1;
+            --purple-bg: #eae4f2;
+            --pink-bg: #f4dfeb;
+            --brown-bg: #e9e5e3;
+            --gray-bg: #ebeced;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #191919;
+            --bg-secondary: #202020;
+            --bg-sidebar: #202020;
+            --bg-hover: #2f2f2f;
+            --bg-active: #373737;
+            --bg-selection: #2d4a5e;
+            --text-primary: #e6e6e5;
+            --text-secondary: #9b9a97;
+            --text-muted: #6b6b6b;
+            --border-color: #373737;
+            --red: #ff7369;
+            --orange: #ffa344;
+            --yellow: #ffdc49;
+            --green: #4dab9a;
+            --blue: #529cca;
+            --purple: #9a6dd7;
+            --pink: #e255a1;
+            --brown: #937264;
+            --gray: #979a9b;
+            --red-bg: #522e2e;
+            --orange-bg: #5c3b1e;
+            --yellow-bg: #564328;
+            --green-bg: #28494a;
+            --blue-bg: #28456c;
+            --purple-bg: #412f5c;
+            --pink-bg: #4e2c3c;
+            --brown-bg: #3d3432;
+            --gray-bg: #373737;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 16px;
+            line-height: 1.5;
+            overflow: hidden;
+        }
+
+        /* Selection */
+        ::selection {
+            background-color: var(--bg-selection);
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.2s ease, min-width 0.2s ease, transform 0.2s ease;
+            overflow: hidden;
+            position: relative;
+            z-index: 50;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            min-width: 0;
+            border-right: none;
+        }
+
+        .sidebar-header {
+            padding: 12px 10px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .workspace-switcher {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .workspace-switcher:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .workspace-icon {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .workspace-name {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-toggle {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .sidebar-header:hover .sidebar-toggle {
+            opacity: 1;
+        }
+
+        .sidebar-toggle:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* Search */
+        .sidebar-search {
+            padding: 4px 10px 8px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .search-box:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .search-box i {
+            font-size: 14px;
+        }
+
+        .search-box kbd {
+            margin-left: auto;
+            padding: 1px 5px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: inherit;
+        }
+
+        /* Sidebar Sections */
+        .sidebar-section {
+            padding: 0 10px;
+            margin-bottom: 16px;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+            transition: background-color 0.1s;
+        }
+
+        .sidebar-item:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .sidebar-item.active {
+            background-color: var(--bg-active);
+            color: var(--text-primary);
+        }
+
+        /* Pages Section */
+        .pages-section {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 8px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 14px 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .section-header-actions {
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .section-header:hover .section-header-actions {
+            opacity: 1;
+        }
+
+        .section-action-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .section-action-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* Page Items */
+        .page-tree {
+            padding: 0 8px;
+        }
+
+        .page-item {
+            display: flex;
+            align-items: center;
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+
+        .page-item:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .page-item.active {
+            background-color: var(--bg-active);
+        }
+
+        .page-item.drag-over {
+            background-color: var(--bg-selection);
+        }
+
+        .page-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: transform 0.15s;
+        }
+
+        .page-toggle:hover {
+            background-color: var(--bg-active);
+        }
+
+        .page-toggle.expanded {
+            transform: rotate(90deg);
+        }
+
+        .page-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .page-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            padding: 0 4px;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+        }
+
+        .page-item:hover .page-actions {
+            opacity: 1;
+        }
+
+        .page-action-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .page-action-btn:hover {
+            background-color: var(--bg-active);
+        }
+
+        .page-children {
+            padding-left: 12px;
+            display: none;
+        }
+
+        .page-children.expanded {
+            display: block;
+        }
+
+        /* Favorites Section */
+        .favorites-section .page-item {
+            padding-left: 8px;
+        }
+
+        /* Folders Section */
+        .folders-section {
+            margin-bottom: 8px;
+        }
+
+        .folder-tree {
+            padding: 0 8px;
+        }
+
+        .folder-item {
+            margin-bottom: 2px;
+        }
+
+        .folder-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .folder-header:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .folder-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: transform 0.15s;
+        }
+
+        .folder-toggle.expanded {
+            transform: rotate(90deg);
+        }
+
+        .folder-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .folder-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            padding: 0 6px;
+            font-weight: 500;
+        }
+
+        .folder-actions {
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+        }
+
+        .folder-header:hover .folder-actions {
+            opacity: 1;
+        }
+
+        .folder-action-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .folder-action-btn:hover {
+            background-color: var(--bg-active);
+        }
+
+        .folder-pages {
+            padding-left: 24px;
+        }
+
+        .folder-pages .page-item {
+            padding: 3px 6px;
+        }
+
+        .folder-page-item {
+            display: flex;
+            align-items: center;
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .folder-page-item:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .folder-page-item .page-icon {
+            font-size: 14px;
+            margin-right: 6px;
+        }
+
+        .folder-empty {
+            padding: 8px 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Folder Modal */
+        .folder-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+
+        .folder-modal.visible {
+            display: flex;
+        }
+
+        .folder-modal-content {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 24px;
+            width: 380px;
+            max-width: 90%;
+        }
+
+        .folder-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .folder-form-group {
+            margin-bottom: 16px;
+        }
+
+        .folder-form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .folder-form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .folder-form-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .folder-icon-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .folder-icon-option {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.15s;
+        }
+
+        .folder-icon-option:hover {
+            background: var(--bg-hover);
+        }
+
+        .folder-icon-option.selected {
+            border-color: var(--accent-color);
+            background: var(--bg-selection);
+        }
+
+        .folder-color-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .folder-color-option {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .folder-color-option.selected {
+            border-color: var(--text-primary);
+        }
+
+        .folder-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .folder-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .folder-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .folder-btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .folder-btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .folder-btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        /* New Page Button */
+        .new-page-area {
+            padding: 8px 10px;
+        }
+
+        .new-page-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+
+        .new-page-btn:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 8px 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background-color: var(--bg-primary);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            height: var(--header-height);
+            min-height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 4px;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sidebar-open-btn {
+            width: 28px;
+            height: 28px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-open-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .sidebar.collapsed ~ .main-content .sidebar-open-btn {
+            display: flex;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 14px;
+            overflow: hidden;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .breadcrumb-item:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .top-bar-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .top-bar-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .top-bar-btn.active {
+            color: var(--accent-color);
+        }
+
+        .share-btn {
+            padding: 4px 10px;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .share-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Page Content Area */
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .page-scroller {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 96px 100px;
+            width: 100%;
+        }
+
+        .page-scroller.full-width {
+            max-width: 100%;
+            padding: 0 96px 100px;
+        }
+
+        @media (max-width: 1000px) {
+            .page-scroller, .page-scroller.full-width {
+                padding: 0 24px 100px;
+            }
+        }
+
+        /* Page Cover */
+        .page-cover {
+            height: 30vh;
+            min-height: 200px;
+            max-height: 280px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            margin-bottom: -60px;
+        }
+
+        .page-cover-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .page-cover-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.3));
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .page-cover:hover .page-cover-overlay {
+            opacity: 1;
+        }
+
+        .cover-btn {
+            padding: 4px 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cover-btn:hover {
+            background-color: white;
+        }
+
+        /* Page Header */
+        .page-header {
+            padding: 80px 0 4px;
+            position: relative;
+        }
+
+        .page-header.has-cover {
+            padding-top: 0;
+        }
+
+        .page-icon-large {
+            font-size: 78px;
+            line-height: 1;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: inline-block;
+            position: relative;
+        }
+
+        .page-header.has-cover .page-icon-large {
+            margin-top: -40px;
+        }
+
+        .page-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .page-header:hover .page-controls {
+            opacity: 1;
+        }
+
+        .page-control-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .page-control-btn:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .page-title-input {
+            width: 100%;
+            font-size: 40px;
+            font-weight: 700;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-primary);
+            padding: 0;
+            line-height: 1.2;
+        }
+
+        .page-title-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Content Blocks */
+        .blocks-container {
+            padding-top: 2px;
+            min-height: 200px;
+        }
+
+        .block {
+            position: relative;
+            padding: 3px 0;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .block.selected {
+            background-color: var(--bg-selection);
+            border-radius: 4px;
+        }
+
+        .block.dragging {
+            opacity: 0.5;
+        }
+
+        .block-handle {
+            position: absolute;
+            left: -50px;
+            top: 3px;
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .block:hover .block-handle {
+            opacity: 1;
+        }
+
+        .block-handle-btn {
+            width: 18px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .block-handle-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .drag-handle {
+            cursor: grab;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .block-content {
+            flex: 1;
+            min-height: 1.5em;
+            outline: none;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .block-content:empty::before {
+            content: attr(data-placeholder);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .block-content[contenteditable="true"]:focus:empty::before {
+            content: attr(data-placeholder-focus);
+        }
+
+        /* Block Types */
+        .block-content.heading-1 {
+            font-size: 1.875em;
+            font-weight: 600;
+            margin: 1em 0 4px;
+            line-height: 1.3;
+        }
+
+        .block-content.heading-2 {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin: 0.8em 0 2px;
+            line-height: 1.3;
+        }
+
+        .block-content.heading-3 {
+            font-size: 1.25em;
+            font-weight: 600;
+            margin: 0.5em 0 2px;
+            line-height: 1.3;
+        }
+
+        /* Lists */
+        .block-bullet {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .block-bullet::before {
+            content: "\\2022";
+            margin-right: 8px;
+            color: var(--text-primary);
+            flex-shrink: 0;
+        }
+
+        .block-numbered {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .block-numbered::before {
+            content: attr(data-number) ".";
+            margin-right: 8px;
+            color: var(--text-primary);
+            flex-shrink: 0;
+            min-width: 20px;
+        }
+
+        /* Todo */
+        .block-todo {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .block-todo input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-top: 4px;
+            cursor: pointer;
+            accent-color: var(--accent-color);
+            flex-shrink: 0;
+        }
+
+        .block-todo.checked .block-content {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        /* Toggle */
+        .block-toggle {
+            width: 100%;
+        }
+
+        .toggle-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .toggle-icon {
+            width: 20px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: transform 0.15s;
+            flex-shrink: 0;
+        }
+
+        .toggle-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .toggle-content {
+            padding-left: 24px;
+            display: none;
+            border-left: 2px solid var(--border-color);
+            margin-left: 8px;
+            margin-top: 4px;
+        }
+
+        .toggle-content.expanded {
+            display: block;
+        }
+
+        /* Quote */
+        .block-quote {
+            border-left: 3px solid var(--text-primary);
+            padding-left: 14px;
+            font-size: 1.1em;
+        }
+
+        /* Callout */
+        .block-callout {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            background-color: var(--bg-secondary);
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .callout-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .callout-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Divider */
+        .block-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 8px 0;
+            width: 100%;
+        }
+
+        /* Code Block */
+        .block-code {
+            width: 100%;
+            background-color: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background-color: var(--bg-hover);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .code-language {
+            cursor: pointer;
+        }
+
+        .code-copy-btn {
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .code-copy-btn:hover {
+            background-color: var(--bg-active);
+        }
+
+        .code-content {
+            padding: 12px 16px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre;
+            tab-size: 2;
+        }
+
+        /* Image Block */
+        .block-image {
+            width: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .block-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .image-placeholder {
+            padding: 40px;
+            background-color: var(--bg-secondary);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .image-placeholder:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .image-placeholder i {
+            font-size: 24px;
+        }
+
+        .image-caption {
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Video/Embed Block */
+        .block-embed {
+            width: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .embed-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .embed-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .embed-placeholder {
+            padding: 40px;
+            background-color: var(--bg-secondary);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        /* Bookmark */
+        .block-bookmark {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        .block-bookmark:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .bookmark-content {
+            flex: 1;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .bookmark-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bookmark-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .bookmark-url {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .bookmark-url img {
+            width: 14px;
+            height: 14px;
+        }
+
+        .bookmark-image {
+            width: 180px;
+            min-height: 100px;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+        }
+
+        /* File Block */
+        .block-file {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        .block-file:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-secondary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Table Block */
+        .block-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .table-wrapper {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .notion-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .notion-table th,
+        .notion-table td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+            min-width: 100px;
+        }
+
+        .notion-table th {
+            background-color: var(--bg-secondary);
+            font-weight: 500;
+        }
+
+        .notion-table td[contenteditable="true"]:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: -2px;
+        }
+
+        .table-add-row, .table-add-col {
+            padding: 8px;
+            text-align: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .table-add-row:hover, .table-add-col:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* Columns */
+        .block-columns {
+            display: flex;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .column-resize {
+            width: 8px;
+            cursor: col-resize;
+            margin: 0 -4px;
+            position: relative;
+        }
+
+        .column-resize::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 3px;
+            width: 2px;
+            background-color: transparent;
+            transition: background-color 0.15s;
+        }
+
+        .column-resize:hover::after {
+            background-color: var(--accent-color);
+        }
+
+        /* Table of Contents */
+        .block-toc {
+            padding: 12px 0;
+        }
+
+        .toc-item {
+            padding: 4px 0;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.1s;
+        }
+
+        .toc-item:hover {
+            color: var(--text-primary);
+        }
+
+        .toc-h1 { padding-left: 0; }
+        .toc-h2 { padding-left: 16px; }
+        .toc-h3 { padding-left: 32px; }
+
+        /* Math Block */
+        .block-math {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--bg-secondary);
+            border-radius: 4px;
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        /* Synced Block */
+        .block-synced {
+            border-left: 2px solid var(--red);
+            padding-left: 12px;
+        }
+
+        .synced-indicator {
+            font-size: 11px;
+            color: var(--red);
+            margin-bottom: 4px;
+        }
+
+        /* Formatting Toolbar */
+        .formatting-toolbar {
+            position: fixed;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            padding: 4px;
+            display: none;
+            z-index: 1000;
+            gap: 2px;
+        }
+
+        .formatting-toolbar.visible {
+            display: flex;
+        }
+
+        .toolbar-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .toolbar-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .toolbar-btn.active {
+            background-color: var(--bg-active);
+            color: var(--text-primary);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background-color: var(--border-color);
+            margin: 4px 4px;
+        }
+
+        .color-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            padding: 8px;
+            display: none;
+            width: 200px;
+            z-index: 1001;
+        }
+
+        .color-dropdown.visible {
+            display: block;
+        }
+
+        .color-section-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            padding: 4px;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .color-item {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .color-item:hover {
+            opacity: 0.8;
+        }
+
+        /* Slash Command Menu */
+        .slash-menu {
+            position: fixed;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+            padding: 6px 0;
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .slash-menu.visible {
+            display: block;
+        }
+
+        .slash-menu-search {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .slash-menu-search input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .slash-menu-search input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .slash-menu-section {
+            padding: 8px 12px 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .slash-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+
+        .slash-menu-item:hover,
+        .slash-menu-item.selected {
+            background-color: var(--bg-hover);
+        }
+
+        .slash-menu-item-icon {
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .slash-menu-item-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .slash-menu-item-title {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .slash-menu-item-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Search Modal */
+        .search-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 15vh;
+            z-index: 2000;
+        }
+
+        .search-modal-overlay.visible {
+            display: flex;
+        }
+
+        .search-modal {
+            width: 600px;
+            max-width: 90vw;
+            background-color: var(--bg-primary);
+            border-radius: 8px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .search-modal-input {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-modal-input i {
+            color: var(--text-muted);
+            font-size: 18px;
+        }
+
+        .search-modal-input input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 18px;
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .search-modal-input input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-results {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+        }
+
+        .search-result-item:hover,
+        .search-result-item.selected {
+            background-color: var(--bg-hover);
+        }
+
+        .search-result-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .search-result-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .search-result-title {
+            font-weight: 500;
+        }
+
+        .search-result-path {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .search-empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-filter {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        .search-filter:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .search-filter.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        /* Share Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            width: 500px;
+            max-width: 90vw;
+            background-color: var(--bg-primary);
+            border-radius: 8px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .modal-close {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .modal-close:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .share-link-section {
+            margin-bottom: 20px;
+        }
+
+        .share-link-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .share-link-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .share-copy-btn {
+            padding: 8px 16px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .share-copy-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .share-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .share-option-text {
+            flex: 1;
+        }
+
+        .share-option-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .share-option-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 22px;
+            background-color: var(--bg-secondary);
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .toggle-switch.active {
+            background-color: var(--accent-color);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background-color: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(18px);
+        }
+
+        /* Settings Modal */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .settings-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        .settings-option-label {
+            font-size: 14px;
+        }
+
+        .settings-select {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        /* Comments Panel */
+        .comments-panel {
+            position: fixed;
+            right: 0;
+            top: var(--header-height);
+            bottom: 0;
+            width: 320px;
+            background-color: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
+            display: none;
+            flex-direction: column;
+            z-index: 40;
+        }
+
+        .comments-panel.visible {
+            display: flex;
+        }
+
+        .comments-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .comments-title {
+            font-weight: 600;
+        }
+
+        .comments-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .comment-item {
+            margin-bottom: 16px;
+        }
+
+        .comment-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .comment-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .comment-author {
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .comment-date {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .comment-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .comment-input-area {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            resize: none;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .comment-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* History Panel */
+        .history-panel {
+            position: fixed;
+            right: 0;
+            top: var(--header-height);
+            bottom: 0;
+            width: 280px;
+            background-color: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
+            display: none;
+            flex-direction: column;
+            z-index: 40;
+        }
+
+        .history-panel.visible {
+            display: flex;
+        }
+
+        .history-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .history-item.active {
+            background-color: var(--bg-active);
+        }
+
+        .history-time {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .history-author {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* AI Panel */
+        .ai-panel {
+            position: fixed;
+            right: 0;
+            top: var(--header-height);
+            bottom: 0;
+            width: 400px;
+            background-color: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
+            display: none;
+            flex-direction: column;
+            z-index: 45;
+        }
+
+        .ai-panel.visible {
+            display: flex;
+        }
+
+        .ai-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ai-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-title i {
+            color: var(--purple);
+        }
+
+        .ai-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 16px;
+        }
+
+        .ai-tab {
+            padding: 12px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .ai-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .ai-tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .ai-content {
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .ai-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* AI Chat */
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .ai-message {
+            margin-bottom: 16px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-message.user {
+            text-align: right;
+        }
+
+        .ai-message-bubble {
+            display: inline-block;
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .ai-message.user .ai-message-bubble {
+            background-color: var(--accent-color);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message.assistant .ai-message-bubble {
+            background-color: var(--bg-secondary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .ai-message-bubble strong {
+            font-weight: 600;
+        }
+
+        .ai-message-bubble code {
+            background: var(--bg-hover);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .ai-quick-actions {
+            padding: 12px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ai-quick-btn {
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-quick-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .ai-quick-btn i {
+            font-size: 11px;
+            color: var(--purple);
+        }
+
+        .ai-input-area {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .ai-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .ai-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            max-height: 120px;
+        }
+
+        .ai-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .ai-send-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        .ai-send-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .ai-send-btn:disabled {
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* AI Transcription */
+        .ai-transcribe-area {
+            padding: 20px;
+        }
+
+        .ai-upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ai-upload-zone:hover {
+            border-color: var(--accent-color);
+            background: var(--bg-secondary);
+        }
+
+        .ai-upload-zone.dragover {
+            border-color: var(--accent-color);
+            background: var(--blue-bg);
+        }
+
+        .ai-upload-icon {
+            font-size: 48px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .ai-upload-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .ai-upload-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .ai-transcripts-list {
+            margin-top: 24px;
+        }
+
+        .ai-transcripts-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-transcript-item {
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ai-transcript-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .ai-transcript-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-transcript-name i {
+            color: var(--purple);
+        }
+
+        .ai-transcript-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .ai-transcript-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .ai-transcript-status.completed {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .ai-transcript-status.recording {
+            background: var(--red-bg);
+            color: var(--red);
+        }
+
+        /* AI Meeting */
+        .ai-meeting-area {
+            padding: 20px;
+        }
+
+        .ai-meeting-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+            padding: 30px 0;
+        }
+
+        .ai-meeting-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: all 0.2s;
+        }
+
+        .ai-meeting-btn.start {
+            background: var(--red);
+            color: white;
+        }
+
+        .ai-meeting-btn.start:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(224, 62, 62, 0.4);
+        }
+
+        .ai-meeting-btn.stop {
+            background: var(--gray-bg);
+            color: var(--text-primary);
+        }
+
+        .ai-meeting-btn.stop:hover {
+            background: var(--bg-hover);
+        }
+
+        .ai-meeting-status {
+            text-align: center;
+        }
+
+        .ai-meeting-time {
+            font-size: 32px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .ai-meeting-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .ai-recording-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--red);
+            font-size: 14px;
+        }
+
+        .ai-recording-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--red);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .ai-live-transcript {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-top: 16px;
+            max-height: 300px;
+        }
+
+        .ai-transcript-segment {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ai-transcript-segment:last-child {
+            border-bottom: none;
+        }
+
+        .ai-segment-speaker {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--purple);
+            margin-bottom: 4px;
+        }
+
+        .ai-segment-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: 8px;
+            font-weight: 400;
+        }
+
+        .ai-segment-text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Transcript Viewer Modal */
+        .transcript-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .transcript-viewer.visible {
+            display: flex;
+        }
+
+        .transcript-viewer-content {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .transcript-viewer-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .transcript-viewer-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .transcript-viewer-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .transcript-action-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .transcript-action-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .transcript-action-btn.primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .transcript-action-btn.primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .transcript-viewer-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .transcript-summary {
+            background: var(--blue-bg);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .transcript-summary-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .transcript-summary-title i {
+            color: var(--blue);
+        }
+
+        .transcript-actions-section {
+            background: var(--green-bg);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .transcript-full {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        /* Icon Picker */
+        .icon-picker {
+            position: absolute;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 12px;
+            display: none;
+            z-index: 100;
+            width: 340px;
+        }
+
+        .icon-picker.visible {
+            display: block;
+        }
+
+        .icon-picker-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .icon-picker-tab {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .icon-picker-tab:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .icon-picker-tab.active {
+            background-color: var(--bg-active);
+            color: var(--text-primary);
+        }
+
+        .icon-search {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .icon-item {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .icon-item:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .icon-picker-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .icon-action-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .icon-action-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* Cover Picker */
+        .cover-picker {
+            position: absolute;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 12px;
+            display: none;
+            z-index: 100;
+            width: 400px;
+        }
+
+        .cover-picker.visible {
+            display: block;
+        }
+
+        .cover-picker-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .cover-picker-tab {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .cover-picker-tab.active {
+            background-color: var(--bg-active);
+            color: var(--text-primary);
+        }
+
+        .cover-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .cover-item {
+            aspect-ratio: 16/9;
+            border-radius: 4px;
+            cursor: pointer;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .cover-item:hover {
+            opacity: 0.8;
+        }
+
+        .cover-gradient {
+            background: linear-gradient(135deg, var(--start) 0%, var(--end) 100%);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 3000;
+        }
+
+        .toast {
+            padding: 12px 16px;
+            background-color: var(--text-primary);
+            color: var(--bg-primary);
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.2s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Database Views */
+        .database-view {
+            width: 100%;
+        }
+
+        .database-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 4px;
+        }
+
+        .view-tab {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .view-tab:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .view-tab.active {
+            background-color: var(--bg-active);
+            color: var(--text-primary);
+        }
+
+        .database-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 4px;
+        }
+
+        .db-control-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .db-control-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* Board/Kanban View */
+        .board-view {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+        }
+
+        .board-column {
+            min-width: 280px;
+            max-width: 280px;
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .board-column-header {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 500;
+        }
+
+        .board-column-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 2px 6px;
+            background-color: var(--bg-hover);
+            border-radius: 4px;
+        }
+
+        .board-cards {
+            flex: 1;
+            padding: 0 8px 8px;
+            min-height: 100px;
+        }
+
+        .board-card {
+            padding: 12px;
+            background-color: var(--bg-primary);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .board-card:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .board-card-title {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .board-card-props {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .card-tag {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .board-add-card {
+            padding: 8px 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .board-add-card:hover {
+            color: var(--text-primary);
+            background-color: var(--bg-hover);
+            border-radius: 4px;
+            margin: 0 8px 8px;
+        }
+
+        /* Gallery View */
+        .gallery-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .gallery-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: box-shadow 0.15s;
+        }
+
+        .gallery-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .gallery-card-image {
+            aspect-ratio: 16/10;
+            background-color: var(--bg-secondary);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .gallery-card-content {
+            padding: 12px;
+        }
+
+        .gallery-card-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .gallery-card-props {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Calendar View */
+        .calendar-view {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background-color: var(--bg-secondary);
+        }
+
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-nav-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .calendar-nav-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .calendar-title {
+            font-weight: 600;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar-day-header {
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .calendar-day {
+            min-height: 100px;
+            padding: 4px;
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .calendar-day:nth-child(7n) {
+            border-right: none;
+        }
+
+        .calendar-day-number {
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 4px;
+        }
+
+        .calendar-day.today .calendar-day-number {
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-day.other-month {
+            background-color: var(--bg-secondary);
+        }
+
+        .calendar-event {
+            padding: 2px 4px;
+            font-size: 11px;
+            border-radius: 2px;
+            margin-bottom: 2px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Timeline View */
+        .timeline-view {
+            overflow-x: auto;
+        }
+
+        .timeline-header {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .timeline-header-cell {
+            flex: 1;
+            min-width: 100px;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-right: 1px solid var(--border-color);
+        }
+
+        .timeline-body {
+            position: relative;
+        }
+
+        .timeline-row {
+            display: flex;
+            min-height: 40px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .timeline-row-label {
+            width: 150px;
+            padding: 8px;
+            font-size: 13px;
+            border-right: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .timeline-bar {
+            position: absolute;
+            height: 24px;
+            top: 8px;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Trash Modal */
+        .trash-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .trash-item:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .trash-item-icon {
+            font-size: 20px;
+        }
+
+        .trash-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .trash-item-title {
+            font-weight: 500;
+        }
+
+        .trash-item-date {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .trash-item-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .trash-action-btn {
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .trash-restore-btn {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .trash-delete-btn {
+            color: var(--red);
+        }
+
+        .trash-delete-btn:hover {
+            background-color: var(--red-bg);
+        }
+
+        /* Templates Modal */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .template-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .template-card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .template-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .template-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .template-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Keyboard Shortcuts Modal */
+        .shortcuts-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        .shortcut-keys {
+            display: flex;
+            gap: 4px;
+        }
+
+        .shortcut-key {
+            padding: 2px 8px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+            border: 2px solid var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Print Styles */
+        @media print {
+            .sidebar, .top-bar, .page-controls, .block-handle {
+                display: none !important;
+            }
+            .main-content {
+                margin: 0;
+            }
+            .page-scroller {
+                max-width: 100%;
+                padding: 0;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+            }
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+        }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="workspace-switcher" onclick="toggleWorkspaceMenu()">
+                    <div class="workspace-icon">N</div>
+                    <span class="workspace-name">My Notes</span>
+                    <i class="fas fa-chevron-down" style="font-size: 10px; color: var(--text-muted);"></i>
+                </div>
+                <div class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">
+                    <i class="fas fa-chevron-double-left"></i>
+                </div>
+            </div>
+
+            <div class="sidebar-search">
+                <div class="search-box" onclick="openSearch()">
+                    <i class="fas fa-search"></i>
+                    <span>Search</span>
+                    <kbd>&#8984;K</kbd>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-item" onclick="openSettings()">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </div>
+                <div class="sidebar-item" onclick="createNewPage()">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>New page</span>
+                </div>
+                <a href="/notes/calendar" class="sidebar-item" style="text-decoration: none; color: inherit;">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
+                </a>
+                <a href="/notes/classes" class="sidebar-item" style="text-decoration: none; color: inherit;">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Classes</span>
+                </a>
+            </div>
+
+            <!-- Favorites -->
+            <div class="favorites-section" id="favoritesSection" style="display: none;">
+                <div class="section-header">
+                    <span>Favorites</span>
+                </div>
+                <div class="page-tree" id="favoritesList"></div>
+            </div>
+
+            <!-- Folders -->
+            <div class="folders-section" id="foldersSection">
+                <div class="section-header">
+                    <span>Folders</span>
+                    <div class="section-header-actions">
+                        <div class="section-action-btn" onclick="openNewFolderModal()" title="New folder">
+                            <i class="fas fa-folder-plus"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="folder-tree" id="foldersList">
+                    {% if folders is defined %}
+                    {% for folder in folders %}
+                    <div class="folder-item" data-folder-id="{{ folder.id }}">
+                        <div class="folder-header" onclick="toggleFolder('{{ folder.id }}')">
+                            <div class="folder-toggle">
+                                <i class="fas fa-chevron-right fa-xs"></i>
+                            </div>
+                            <span class="folder-icon" style="color: {{ folder.color }}">{{ folder.icon }}</span>
+                            <span class="folder-name">{{ folder.name }}</span>
+                            <div class="folder-actions" onclick="event.stopPropagation()">
+                                <div class="folder-action-btn" onclick="editFolder('{{ folder.id }}')" title="Edit">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </div>
+                                <div class="folder-action-btn" onclick="deleteFolder('{{ folder.id }}')" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="folder-pages" id="folder-pages-{{ folder.id }}" style="display: none;">
+                            <!-- Pages will be loaded dynamically -->
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pages -->
+            <div class="pages-section">
+                <div class="section-header">
+                    <span>Private</span>
+                    <div class="section-header-actions">
+                        <div class="section-action-btn" onclick="createNewPage()" title="Add page">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page-tree" id="pagesList">
+                    {% block sidebar_pages %}{% endblock %}
+                </div>
+            </div>
+
+            <div class="new-page-area">
+                <div class="new-page-btn" onclick="createNewPage()">
+                    <i class="fas fa-plus"></i>
+                    <span>Add a page</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <a href="/auth/profile" class="sidebar-item" style="text-decoration: none; color: inherit;">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="/auth/settings" class="sidebar-item" style="text-decoration: none; color: inherit;">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <div class="sidebar-item" onclick="openTrash()">
+                    <i class="fas fa-trash"></i>
+                    <span>Trash</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <div class="sidebar-open-btn" onclick="toggleSidebar()" title="Open sidebar">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                    <div class="breadcrumb" id="breadcrumb">
+                        {% block breadcrumb %}{% endblock %}
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <div class="top-bar-btn" id="undoBtn" onclick="undo()" title="Undo">
+                        <i class="fas fa-undo"></i>
+                    </div>
+                    <div class="top-bar-btn" id="redoBtn" onclick="redo()" title="Redo">
+                        <i class="fas fa-redo"></i>
+                    </div>
+                    <div class="top-bar-btn" onclick="toggleComments()" title="Comments">
+                        <i class="fas fa-comment"></i>
+                    </div>
+                    <div class="top-bar-btn" onclick="toggleHistory()" title="Page history">
+                        <i class="fas fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="top-bar-btn" id="favoriteBtn" onclick="toggleFavorite()" title="Add to favorites">
+                        <i class="far fa-star"></i>
+                    </div>
+                    <div class="share-btn" onclick="openShare()">Share</div>
+                    <div class="top-bar-btn" onclick="toggleAI()" title="AI Assistant" id="aiBtn">
+                        <i class="fas fa-robot" style="color: var(--purple);"></i>
+                    </div>
+                    <div class="top-bar-btn" onclick="openPageMenu(event)" title="More options">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </div>
+                    <div class="top-bar-btn" onclick="toggleTheme()" title="Toggle dark mode">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-content" id="pageContent">
+                {% block content %}{% endblock %}
+            </div>
+
+            <!-- Comments Panel -->
+            <div class="comments-panel" id="commentsPanel">
+                <div class="comments-header">
+                    <span class="comments-title">Comments</span>
+                    <div class="modal-close" onclick="toggleComments()">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+                <div class="comments-list" id="commentsList">
+                    <!-- Comments will be loaded here -->
+                </div>
+                <div class="comment-input-area">
+                    <textarea class="comment-input" placeholder="Add a comment..." rows="2" id="commentInput"></textarea>
+                </div>
+            </div>
+
+            <!-- History Panel -->
+            <div class="history-panel" id="historyPanel">
+                <div class="history-header">
+                    <span class="comments-title">Page history</span>
+                    <div class="modal-close" onclick="toggleHistory()">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+                <div class="history-list" id="historyList">
+                    <!-- History items will be loaded here -->
+                </div>
+            </div>
+
+            <!-- AI Panel -->
+            <div class="ai-panel" id="aiPanel">
+                <div class="ai-header">
+                    <span class="ai-title"><i class="fas fa-robot"></i> AI Assistant</span>
+                    <div class="modal-close" onclick="toggleAI()">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+                <div class="ai-tabs">
+                    <div class="ai-tab active" data-tab="chat" onclick="switchAITab('chat')">
+                        <i class="fas fa-comments"></i> Chat
+                    </div>
+                    <div class="ai-tab" data-tab="transcribe" onclick="switchAITab('transcribe')">
+                        <i class="fas fa-microphone"></i> Transcribe
+                    </div>
+                    <div class="ai-tab" data-tab="meeting" onclick="switchAITab('meeting')">
+                        <i class="fas fa-video"></i> Meeting
+                    </div>
+                </div>
+
+                <!-- Chat Tab -->
+                <div class="ai-content active" id="aiChatContent">
+                    <div class="ai-quick-actions">
+                        <div class="ai-quick-btn" onclick="aiQuickAction('summarize')">
+                            <i class="fas fa-compress-alt"></i> Summarize
+                        </div>
+                        <div class="ai-quick-btn" onclick="aiQuickAction('action_items')">
+                            <i class="fas fa-tasks"></i> Action Items
+                        </div>
+                        <div class="ai-quick-btn" onclick="aiQuickAction('improve')">
+                            <i class="fas fa-magic"></i> Improve
+                        </div>
+                        <div class="ai-quick-btn" onclick="aiQuickAction('translate')">
+                            <i class="fas fa-globe"></i> Translate
+                        </div>
+                    </div>
+                    <div class="ai-chat-messages" id="aiChatMessages">
+                        <div class="ai-message assistant">
+                            <div class="ai-message-bubble">
+                                <strong>Hello!</strong> I'm your AI assistant. I can help you:
+                                <br><br>
+                                • <strong>Summarize</strong> your notes<br>
+                                • <strong>Extract action items</strong> from meetings<br>
+                                • <strong>Generate content</strong> and ideas<br>
+                                • <strong>Improve</strong> your writing<br>
+                                • <strong>Translate</strong> to other languages<br>
+                                <br>
+                                How can I help you today?
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ai-input-area">
+                        <div class="ai-input-wrapper">
+                            <textarea class="ai-input" id="aiChatInput" placeholder="Ask me anything..." rows="1" onkeydown="handleAIInputKeydown(event)"></textarea>
+                            <button class="ai-send-btn" onclick="sendAIMessage()" id="aiSendBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transcribe Tab -->
+                <div class="ai-content" id="aiTranscribeContent">
+                    <div class="ai-transcribe-area">
+                        <div class="ai-upload-zone" id="aiUploadZone" onclick="document.getElementById('audioFileInput').click()">
+                            <div class="ai-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <div class="ai-upload-text">Drop audio/video file here or click to upload</div>
+                            <div class="ai-upload-hint">Supports MP3, WAV, MP4, M4A, WEBM</div>
+                            <input type="file" id="audioFileInput" accept="audio/*,video/*" style="display:none" onchange="handleAudioUpload(this)">
+                        </div>
+
+                        <div class="ai-transcripts-list" id="transcriptsList">
+                            <div class="ai-transcripts-title">
+                                <i class="fas fa-history"></i> Recent Transcripts
+                            </div>
+                            <!-- Transcripts will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meeting Tab -->
+                <div class="ai-content" id="aiMeetingContent">
+                    <div class="ai-meeting-area">
+                        <div class="ai-meeting-controls" id="meetingControls">
+                            <button class="ai-meeting-btn start" id="meetingStartBtn" onclick="startMeetingRecording()">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <div class="ai-meeting-status">
+                                <div class="ai-meeting-time" id="meetingTime">00:00:00</div>
+                                <div class="ai-meeting-label">Click to start recording</div>
+                            </div>
+                        </div>
+
+                        <div class="ai-meeting-controls" id="meetingRecordingControls" style="display:none">
+                            <div class="ai-recording-indicator">
+                                <div class="ai-recording-dot"></div>
+                                Recording...
+                            </div>
+                            <div class="ai-meeting-status">
+                                <div class="ai-meeting-time" id="recordingTime">00:00:00</div>
+                            </div>
+                            <button class="ai-meeting-btn stop" onclick="stopMeetingRecording()">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>
+
+                        <div class="ai-live-transcript" id="liveTranscript" style="display:none">
+                            <div class="ai-transcript-segment">
+                                <div class="ai-segment-speaker">
+                                    Speaker 1 <span class="ai-segment-time">0:00</span>
+                                </div>
+                                <div class="ai-segment-text">Waiting for speech...</div>
+                            </div>
+                        </div>
+
+                        <div class="ai-transcripts-list" id="meetingTranscriptsList" style="margin-top: 24px;">
+                            <div class="ai-transcripts-title">
+                                <i class="fas fa-calendar-check"></i> Meeting Recordings
+                            </div>
+                            <!-- Meeting transcripts will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcript Viewer Modal -->
+            <div class="transcript-viewer" id="transcriptViewer">
+                <div class="transcript-viewer-content">
+                    <div class="transcript-viewer-header">
+                        <span class="transcript-viewer-title" id="transcriptViewerTitle">Transcript</span>
+                        <div class="transcript-viewer-actions">
+                            <button class="transcript-action-btn" onclick="copyTranscript()">
+                                <i class="far fa-copy"></i> Copy
+                            </button>
+                            <button class="transcript-action-btn primary" onclick="transcriptToPage()">
+                                <i class="fas fa-file-alt"></i> Create Page
+                            </button>
+                            <button class="transcript-action-btn" onclick="closeTranscriptViewer()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="transcript-viewer-body" id="transcriptViewerBody">
+                        <!-- Transcript content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Formatting Toolbar -->
+    <div class="formatting-toolbar" id="formattingToolbar">
+        <div class="toolbar-btn" onclick="formatText('bold')" title="Bold"><i class="fas fa-bold"></i></div>
+        <div class="toolbar-btn" onclick="formatText('italic')" title="Italic"><i class="fas fa-italic"></i></div>
+        <div class="toolbar-btn" onclick="formatText('underline')" title="Underline"><i class="fas fa-underline"></i></div>
+        <div class="toolbar-btn" onclick="formatText('strikethrough')" title="Strikethrough"><i class="fas fa-strikethrough"></i></div>
+        <div class="toolbar-btn" onclick="formatText('code')" title="Code"><i class="fas fa-code"></i></div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-btn" onclick="formatText('link')" title="Link"><i class="fas fa-link"></i></div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-btn" id="colorBtn" onclick="toggleColorDropdown()" title="Color" style="position: relative;">
+            <i class="fas fa-palette"></i>
+            <div class="color-dropdown" id="colorDropdown">
+                <div class="color-section-title">Text color</div>
+                <div class="color-grid">
+                    <div class="color-item" style="color: var(--text-primary);" onclick="setTextColor('inherit')">A</div>
+                    <div class="color-item" style="color: var(--red);" onclick="setTextColor('var(--red)')">A</div>
+                    <div class="color-item" style="color: var(--orange);" onclick="setTextColor('var(--orange)')">A</div>
+                    <div class="color-item" style="color: var(--yellow);" onclick="setTextColor('var(--yellow)')">A</div>
+                    <div class="color-item" style="color: var(--green);" onclick="setTextColor('var(--green)')">A</div>
+                    <div class="color-item" style="color: var(--blue);" onclick="setTextColor('var(--blue)')">A</div>
+                    <div class="color-item" style="color: var(--purple);" onclick="setTextColor('var(--purple)')">A</div>
+                    <div class="color-item" style="color: var(--pink);" onclick="setTextColor('var(--pink)')">A</div>
+                    <div class="color-item" style="color: var(--brown);" onclick="setTextColor('var(--brown)')">A</div>
+                    <div class="color-item" style="color: var(--gray);" onclick="setTextColor('var(--gray)')">A</div>
+                </div>
+                <div class="color-section-title">Background color</div>
+                <div class="color-grid">
+                    <div class="color-item" style="background: transparent; border: 1px solid var(--border-color);" onclick="setBackgroundColor('transparent')">A</div>
+                    <div class="color-item" style="background: var(--red-bg);" onclick="setBackgroundColor('var(--red-bg)')">A</div>
+                    <div class="color-item" style="background: var(--orange-bg);" onclick="setBackgroundColor('var(--orange-bg)')">A</div>
+                    <div class="color-item" style="background: var(--yellow-bg);" onclick="setBackgroundColor('var(--yellow-bg)')">A</div>
+                    <div class="color-item" style="background: var(--green-bg);" onclick="setBackgroundColor('var(--green-bg)')">A</div>
+                    <div class="color-item" style="background: var(--blue-bg);" onclick="setBackgroundColor('var(--blue-bg)')">A</div>
+                    <div class="color-item" style="background: var(--purple-bg);" onclick="setBackgroundColor('var(--purple-bg)')">A</div>
+                    <div class="color-item" style="background: var(--pink-bg);" onclick="setBackgroundColor('var(--pink-bg)')">A</div>
+                    <div class="color-item" style="background: var(--brown-bg);" onclick="setBackgroundColor('var(--brown-bg)')">A</div>
+                    <div class="color-item" style="background: var(--gray-bg);" onclick="setBackgroundColor('var(--gray-bg)')">A</div>
+                </div>
+            </div>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-btn" onclick="turnInto()" title="Turn into"><i class="fas fa-exchange-alt"></i></div>
+        <div class="toolbar-btn" onclick="commentOnSelection()" title="Comment"><i class="far fa-comment"></i></div>
+    </div>
+
+    <!-- Slash Command Menu -->
+    <div class="slash-menu" id="slashMenu">
+        <div class="slash-menu-search">
+            <input type="text" id="slashSearch" placeholder="Search for a block type..." oninput="filterSlashMenu(this.value)">
+        </div>
+        <div id="slashMenuItems">
+            <!-- Basic Blocks -->
+            <div class="slash-menu-section">Basic blocks</div>
+            <div class="slash-menu-item" data-type="text" data-keywords="text paragraph">
+                <div class="slash-menu-item-icon">Aa</div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Text</div>
+                    <div class="slash-menu-item-desc">Just start writing with plain text</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="heading1" data-keywords="heading h1 title">
+                <div class="slash-menu-item-icon">H1</div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Heading 1</div>
+                    <div class="slash-menu-item-desc">Big section heading</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="heading2" data-keywords="heading h2">
+                <div class="slash-menu-item-icon">H2</div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Heading 2</div>
+                    <div class="slash-menu-item-desc">Medium section heading</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="heading3" data-keywords="heading h3">
+                <div class="slash-menu-item-icon">H3</div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Heading 3</div>
+                    <div class="slash-menu-item-desc">Small section heading</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="bullet" data-keywords="bullet list unordered">
+                <div class="slash-menu-item-icon"><i class="fas fa-list-ul"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Bulleted list</div>
+                    <div class="slash-menu-item-desc">Create a simple bulleted list</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="numbered" data-keywords="numbered list ordered">
+                <div class="slash-menu-item-icon"><i class="fas fa-list-ol"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Numbered list</div>
+                    <div class="slash-menu-item-desc">Create a list with numbering</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="todo" data-keywords="todo checkbox check task">
+                <div class="slash-menu-item-icon"><i class="far fa-check-square"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">To-do list</div>
+                    <div class="slash-menu-item-desc">Track tasks with a to-do list</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="toggle" data-keywords="toggle collapsible expand">
+                <div class="slash-menu-item-icon"><i class="fas fa-caret-right"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Toggle list</div>
+                    <div class="slash-menu-item-desc">Toggles can hide and show content</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="quote" data-keywords="quote blockquote">
+                <div class="slash-menu-item-icon"><i class="fas fa-quote-left"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Quote</div>
+                    <div class="slash-menu-item-desc">Capture a quote</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="callout" data-keywords="callout info alert warning">
+                <div class="slash-menu-item-icon"><i class="fas fa-lightbulb"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Callout</div>
+                    <div class="slash-menu-item-desc">Make writing stand out</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="divider" data-keywords="divider line separator hr">
+                <div class="slash-menu-item-icon">---</div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Divider</div>
+                    <div class="slash-menu-item-desc">Visually divide blocks</div>
+                </div>
+            </div>
+
+            <!-- Media -->
+            <div class="slash-menu-section">Media</div>
+            <div class="slash-menu-item" data-type="image" data-keywords="image picture photo">
+                <div class="slash-menu-item-icon"><i class="far fa-image"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Image</div>
+                    <div class="slash-menu-item-desc">Upload or embed with a link</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="video" data-keywords="video youtube vimeo">
+                <div class="slash-menu-item-icon"><i class="fas fa-video"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Video</div>
+                    <div class="slash-menu-item-desc">Embed from YouTube, Vimeo...</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="file" data-keywords="file attachment upload">
+                <div class="slash-menu-item-icon"><i class="fas fa-paperclip"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">File</div>
+                    <div class="slash-menu-item-desc">Upload or embed a file</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="bookmark" data-keywords="bookmark link web">
+                <div class="slash-menu-item-icon"><i class="fas fa-bookmark"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Web bookmark</div>
+                    <div class="slash-menu-item-desc">Save a link as a visual bookmark</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="code" data-keywords="code snippet programming">
+                <div class="slash-menu-item-icon"><i class="fas fa-code"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Code</div>
+                    <div class="slash-menu-item-desc">Capture a code snippet</div>
+                </div>
+            </div>
+
+            <!-- Database -->
+            <div class="slash-menu-section">Database</div>
+            <div class="slash-menu-item" data-type="table" data-keywords="table grid spreadsheet">
+                <div class="slash-menu-item-icon"><i class="fas fa-table"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Table</div>
+                    <div class="slash-menu-item-desc">Add a simple table</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="database" data-keywords="database board kanban">
+                <div class="slash-menu-item-icon"><i class="fas fa-database"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Database - Inline</div>
+                    <div class="slash-menu-item-desc">Add a database inside this page</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="board" data-keywords="board kanban">
+                <div class="slash-menu-item-icon"><i class="fas fa-columns"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Board view</div>
+                    <div class="slash-menu-item-desc">Create a Kanban board</div>
+                </div>
+            </div>
+
+            <!-- Advanced -->
+            <div class="slash-menu-section">Advanced blocks</div>
+            <div class="slash-menu-item" data-type="toc" data-keywords="toc contents outline">
+                <div class="slash-menu-item-icon"><i class="fas fa-list"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Table of contents</div>
+                    <div class="slash-menu-item-desc">Show an outline of the page</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="columns" data-keywords="columns layout 2col">
+                <div class="slash-menu-item-icon"><i class="fas fa-columns"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">2 columns</div>
+                    <div class="slash-menu-item-desc">Create 2 columns of blocks</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="columns3" data-keywords="columns layout 3col">
+                <div class="slash-menu-item-icon"><i class="fas fa-columns"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">3 columns</div>
+                    <div class="slash-menu-item-desc">Create 3 columns of blocks</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="math" data-keywords="math equation latex">
+                <div class="slash-menu-item-icon"><i class="fas fa-square-root-alt"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Math equation</div>
+                    <div class="slash-menu-item-desc">Write a math equation</div>
+                </div>
+            </div>
+            <div class="slash-menu-item" data-type="embed" data-keywords="embed iframe">
+                <div class="slash-menu-item-icon"><i class="fas fa-external-link-alt"></i></div>
+                <div class="slash-menu-item-text">
+                    <div class="slash-menu-item-title">Embed</div>
+                    <div class="slash-menu-item-desc">Embed external content</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Modal -->
+    <div class="search-modal-overlay" id="searchModal" onclick="closeSearchModal(event)">
+        <div class="search-modal" onclick="event.stopPropagation()">
+            <div class="search-modal-input">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search pages..." oninput="performSearch(this.value)" autofocus>
+            </div>
+            <div class="search-filters">
+                <div class="search-filter active" onclick="setSearchFilter('all')">All</div>
+                <div class="search-filter" onclick="setSearchFilter('pages')">Pages</div>
+                <div class="search-filter" onclick="setSearchFilter('content')">In content</div>
+            </div>
+            <div class="search-results" id="searchResults">
+                <div class="search-empty">Type to search...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal-overlay" id="shareModal" onclick="closeModal('shareModal')">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">Share</span>
+                <div class="modal-close" onclick="closeModal('shareModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="share-link-section">
+                    <label style="font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 8px;">Share link</label>
+                    <div class="share-link-row">
+                        <input type="text" class="share-link-input" id="shareLink" readonly>
+                        <button class="share-copy-btn" onclick="copyShareLink()">Copy</button>
+                    </div>
+                </div>
+                <div class="share-option">
+                    <div class="share-option-text">
+                        <div class="share-option-title">Publish to web</div>
+                        <div class="share-option-desc">Allow anyone with the link to view</div>
+                    </div>
+                    <div class="toggle-switch" id="publishToggle" onclick="togglePublish()"></div>
+                </div>
+                <div class="share-option">
+                    <div class="share-option-text">
+                        <div class="share-option-title">Allow editing</div>
+                        <div class="share-option-desc">Anyone with edit access can modify</div>
+                    </div>
+                    <div class="toggle-switch" id="editToggle" onclick="toggleEdit()"></div>
+                </div>
+                <div class="share-option">
+                    <div class="share-option-text">
+                        <div class="share-option-title">Allow comments</div>
+                        <div class="share-option-desc">Viewers can add comments</div>
+                    </div>
+                    <div class="toggle-switch active" id="commentToggle" onclick="toggleCommentPermission()"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" onclick="closeModal('settingsModal')">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">Settings</span>
+                <div class="modal-close" onclick="closeModal('settingsModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <div class="settings-section-title">Appearance</div>
+                    <div class="settings-option">
+                        <span class="settings-option-label">Theme</span>
+                        <select class="settings-select" id="themeSelect" onchange="setTheme(this.value)">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                            <option value="system">System</option>
+                        </select>
+                    </div>
+                    <div class="settings-option">
+                        <span class="settings-option-label">Font size</span>
+                        <select class="settings-select" id="fontSizeSelect" onchange="setFontSize(this.value)">
+                            <option value="14">Small</option>
+                            <option value="16" selected>Default</option>
+                            <option value="18">Large</option>
+                        </select>
+                    </div>
+                    <div class="settings-option">
+                        <span class="settings-option-label">Full width pages</span>
+                        <div class="toggle-switch" id="fullWidthToggle" onclick="toggleFullWidth()"></div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-section-title">Editor</div>
+                    <div class="settings-option">
+                        <span class="settings-option-label">Show line numbers in code</span>
+                        <div class="toggle-switch active" id="lineNumbersToggle" onclick="toggleLineNumbers()"></div>
+                    </div>
+                    <div class="settings-option">
+                        <span class="settings-option-label">Spellcheck</span>
+                        <div class="toggle-switch active" id="spellcheckToggle" onclick="toggleSpellcheck()"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trash Modal -->
+    <div class="modal-overlay" id="trashModal" onclick="closeModal('trashModal')">
+        <div class="modal" onclick="event.stopPropagation()" style="width: 600px;">
+            <div class="modal-header">
+                <span class="modal-title">Trash</span>
+                <div class="modal-close" onclick="closeModal('trashModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body" id="trashList">
+                <!-- Trash items will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Folder Modal -->
+    <div class="folder-modal" id="folderModal" onclick="if(event.target===this)closeFolderModal()">
+        <div class="folder-modal-content">
+            <h3 class="folder-modal-title" id="folderModalTitle">New Folder</h3>
+            <form id="folderForm" onsubmit="saveFolderForm(event)">
+                <input type="hidden" id="editFolderId">
+                <div class="folder-form-group">
+                    <label class="folder-form-label">Name</label>
+                    <input type="text" class="folder-form-input" id="folderNameInput" placeholder="Folder name" required>
+                </div>
+                <div class="folder-form-group">
+                    <label class="folder-form-label">Icon</label>
+                    <div class="folder-icon-selector">
+                        <div class="folder-icon-option selected" data-icon="📁" onclick="selectFolderIcon('📁')">📁</div>
+                        <div class="folder-icon-option" data-icon="📚" onclick="selectFolderIcon('📚')">📚</div>
+                        <div class="folder-icon-option" data-icon="💼" onclick="selectFolderIcon('💼')">💼</div>
+                        <div class="folder-icon-option" data-icon="🎓" onclick="selectFolderIcon('🎓')">🎓</div>
+                        <div class="folder-icon-option" data-icon="📂" onclick="selectFolderIcon('📂')">📂</div>
+                        <div class="folder-icon-option" data-icon="🗂️" onclick="selectFolderIcon('🗂️')">🗂️</div>
+                        <div class="folder-icon-option" data-icon="📋" onclick="selectFolderIcon('📋')">📋</div>
+                        <div class="folder-icon-option" data-icon="🏠" onclick="selectFolderIcon('🏠')">🏠</div>
+                    </div>
+                </div>
+                <div class="folder-form-group">
+                    <label class="folder-form-label">Color</label>
+                    <div class="folder-color-selector">
+                        <div class="folder-color-option selected" data-color="#6940a5" style="background:#6940a5" onclick="selectFolderColor('#6940a5')"></div>
+                        <div class="folder-color-option" data-color="#2383e2" style="background:#2383e2" onclick="selectFolderColor('#2383e2')"></div>
+                        <div class="folder-color-option" data-color="#0f7b6c" style="background:#0f7b6c" onclick="selectFolderColor('#0f7b6c')"></div>
+                        <div class="folder-color-option" data-color="#e03e3e" style="background:#e03e3e" onclick="selectFolderColor('#e03e3e')"></div>
+                        <div class="folder-color-option" data-color="#d9730d" style="background:#d9730d" onclick="selectFolderColor('#d9730d')"></div>
+                        <div class="folder-color-option" data-color="#dfab01" style="background:#dfab01" onclick="selectFolderColor('#dfab01')"></div>
+                    </div>
+                </div>
+                <div class="folder-modal-actions">
+                    <button type="button" class="folder-btn folder-btn-secondary" onclick="closeFolderModal()">Cancel</button>
+                    <button type="submit" class="folder-btn folder-btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div class="modal-overlay" id="templatesModal" onclick="closeModal('templatesModal')">
+        <div class="modal" onclick="event.stopPropagation()" style="width: 700px;">
+            <div class="modal-header">
+                <span class="modal-title">Templates</span>
+                <div class="modal-close" onclick="closeModal('templatesModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="template-grid" id="templateGrid">
+                    <div class="template-card" onclick="useTemplate('blank')">
+                        <div class="template-icon">&#128196;</div>
+                        <div class="template-name">Empty page</div>
+                        <div class="template-desc">Start from scratch</div>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('meeting')">
+                        <div class="template-icon">&#128197;</div>
+                        <div class="template-name">Meeting notes</div>
+                        <div class="template-desc">Organize meeting agendas</div>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('todo')">
+                        <div class="template-icon">&#9989;</div>
+                        <div class="template-name">To-do list</div>
+                        <div class="template-desc">Track your tasks</div>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('journal')">
+                        <div class="template-icon">&#128214;</div>
+                        <div class="template-name">Journal</div>
+                        <div class="template-desc">Daily journaling template</div>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('project')">
+                        <div class="template-icon">&#128640;</div>
+                        <div class="template-name">Project plan</div>
+                        <div class="template-desc">Plan and track projects</div>
+                    </div>
+                    <div class="template-card" onclick="useTemplate('wiki')">
+                        <div class="template-icon">&#128218;</div>
+                        <div class="template-name">Wiki</div>
+                        <div class="template-desc">Knowledge base template</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal-overlay" id="shortcutsModal" onclick="closeModal('shortcutsModal')">
+        <div class="modal" onclick="event.stopPropagation()" style="width: 600px;">
+            <div class="modal-header">
+                <span class="modal-title">Keyboard shortcuts</span>
+                <div class="modal-close" onclick="closeModal('shortcutsModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-grid">
+                    <div class="shortcut-item">
+                        <span>Search</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">K</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>New page</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">N</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Bold</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">B</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Italic</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">I</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Underline</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">U</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Strikethrough</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">Shift</span><span class="shortcut-key">S</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Code</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">E</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Link</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">K</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Undo</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">Z</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Redo</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">Shift</span><span class="shortcut-key">Z</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Toggle sidebar</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">\\</span></div>
+                    </div>
+                    <div class="shortcut-item">
+                        <span>Dark mode</span>
+                        <div class="shortcut-keys"><span class="shortcut-key">&#8984;</span><span class="shortcut-key">Shift</span><span class="shortcut-key">L</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+        }
+
+        function setTheme(theme) {
+            if (theme === 'system') {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+
+            const themeIcon = document.getElementById('themeIcon');
+            if (themeIcon) {
+                themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+
+            // Update code theme
+            const lightTheme = document.getElementById('code-theme-light');
+            const darkTheme = document.getElementById('code-theme-dark');
+            if (lightTheme && darkTheme) {
+                lightTheme.disabled = theme === 'dark';
+                darkTheme.disabled = theme === 'light';
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        // Sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        // Search
+        function openSearch() {
+            document.getElementById('searchModal').classList.add('visible');
+            document.getElementById('searchInput').focus();
+        }
+
+        function closeSearchModal(event) {
+            if (event.target.id === 'searchModal') {
+                document.getElementById('searchModal').classList.remove('visible');
+            }
+        }
+
+        function performSearch(query) {
+            // Implementation will fetch from API
+            const resultsContainer = document.getElementById('searchResults');
+            if (!query) {
+                resultsContainer.innerHTML = '<div class="search-empty">Type to search...</div>';
+                return;
+            }
+            // Placeholder - actual implementation would fetch from server
+            resultsContainer.innerHTML = '<div class="search-empty">Searching...</div>';
+        }
+
+        function setSearchFilter(filter) {
+            document.querySelectorAll('.search-filter').forEach(f => f.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Modals
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('visible');
+        }
+
+        function openShare() {
+            const shareLink = window.location.href;
+            document.getElementById('shareLink').value = shareLink;
+            document.getElementById('shareModal').classList.add('visible');
+        }
+
+        function copyShareLink() {
+            const input = document.getElementById('shareLink');
+            input.select();
+            document.execCommand('copy');
+            showToast('Link copied to clipboard');
+        }
+
+        function togglePublish() {
+            document.getElementById('publishToggle').classList.toggle('active');
+        }
+
+        function toggleEdit() {
+            document.getElementById('editToggle').classList.toggle('active');
+        }
+
+        function toggleCommentPermission() {
+            document.getElementById('commentToggle').classList.toggle('active');
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('visible');
+        }
+
+        function openTrash() {
+            document.getElementById('trashModal').classList.add('visible');
+            loadTrash();
+        }
+
+        function loadTrash() {
+            fetch('/notes/api/trash')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('trashList');
+                    if (data.pages && data.pages.length > 0) {
+                        container.innerHTML = data.pages.map(page => `
+                            <div class="trash-item">
+                                <span class="trash-item-icon">${page.icon}</span>
+                                <div class="trash-item-info">
+                                    <div class="trash-item-title">${page.title}</div>
+                                    <div class="trash-item-date">Deleted ${page.deleted_at || 'recently'}</div>
+                                </div>
+                                <div class="trash-item-actions">
+                                    <button class="trash-action-btn trash-restore-btn" onclick="restorePage('${page.id}')">Restore</button>
+                                    <button class="trash-action-btn trash-delete-btn" onclick="permanentlyDelete('${page.id}')">Delete</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div class="search-empty">Trash is empty</div>';
+                    }
+                });
+        }
+
+        function restorePage(pageId) {
+            fetch(`/notes/api/page/${pageId}/restore`, { method: 'POST' })
+                .then(() => {
+                    loadTrash();
+                    showToast('Page restored');
+                });
+        }
+
+        function permanentlyDelete(pageId) {
+            if (confirm('Permanently delete this page? This cannot be undone.')) {
+                fetch(`/notes/api/page/${pageId}/permanent`, { method: 'DELETE' })
+                    .then(() => {
+                        loadTrash();
+                        showToast('Page permanently deleted');
+                    });
+            }
+        }
+
+        function openTemplates() {
+            document.getElementById('templatesModal').classList.add('visible');
+        }
+
+        function useTemplate(template) {
+            closeModal('templatesModal');
+            window.location.href = `/notes/page/new?template=${template}`;
+        }
+
+        function openImport() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.md,.txt,.html,.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    fetch('/notes/api/import', {
+                        method: 'POST',
+                        body: formData
+                    }).then(r => r.json()).then(data => {
+                        if (data.page_id) {
+                            window.location.href = `/notes/page/${data.page_id}`;
+                        }
+                    });
+                }
+            };
+            input.click();
+        }
+
+        // Comments
+        function toggleComments() {
+            document.getElementById('commentsPanel').classList.toggle('visible');
+            document.getElementById('historyPanel').classList.remove('visible');
+            document.getElementById('aiPanel').classList.remove('visible');
+        }
+
+        // History
+        function toggleHistory() {
+            document.getElementById('historyPanel').classList.toggle('visible');
+            document.getElementById('commentsPanel').classList.remove('visible');
+            document.getElementById('aiPanel').classList.remove('visible');
+        }
+
+        // AI Panel
+        let currentTranscriptId = null;
+        let meetingTimer = null;
+        let meetingSeconds = 0;
+        let isRecording = false;
+        let simulatedSegmentIndex = 0;
+
+        function toggleAI() {
+            document.getElementById('aiPanel').classList.toggle('visible');
+            document.getElementById('commentsPanel').classList.remove('visible');
+            document.getElementById('historyPanel').classList.remove('visible');
+            loadTranscripts();
+        }
+
+        function switchAITab(tab) {
+            document.querySelectorAll('.ai-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.ai-tab[data-tab="${tab}"]`).classList.add('active');
+
+            document.querySelectorAll('.ai-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`ai${tab.charAt(0).toUpperCase() + tab.slice(1)}Content`).classList.add('active');
+
+            if (tab === 'transcribe') {
+                loadTranscripts();
+            } else if (tab === 'meeting') {
+                loadMeetingTranscripts();
+            }
+        }
+
+        // AI Chat Functions
+        function handleAIInputKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAIMessage();
+            }
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiChatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addAIChatMessage('user', message);
+            input.value = '';
+
+            // Get page context if available
+            const pageId = typeof window.pageId !== 'undefined' ? window.pageId : null;
+
+            // Show typing indicator
+            const typingId = showTypingIndicator();
+
+            // Send to API
+            fetch('/notes/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    page_id: pageId,
+                    action: 'chat'
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                removeTypingIndicator(typingId);
+                if (data.response) {
+                    addAIChatMessage('assistant', data.response);
+                }
+            })
+            .catch(err => {
+                removeTypingIndicator(typingId);
+                addAIChatMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+            });
+        }
+
+        function addAIChatMessage(role, content) {
+            const messagesContainer = document.getElementById('aiChatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${role}`;
+
+            // Parse markdown-like formatting
+            let formattedContent = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+
+            messageDiv.innerHTML = `<div class="ai-message-bubble">${formattedContent}</div>`;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('aiChatMessages');
+            const id = 'typing-' + Date.now();
+            const typingDiv = document.createElement('div');
+            typingDiv.id = id;
+            typingDiv.className = 'ai-message assistant';
+            typingDiv.innerHTML = `<div class="ai-message-bubble"><em>Thinking...</em></div>`;
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const indicator = document.getElementById(id);
+            if (indicator) indicator.remove();
+        }
+
+        function aiQuickAction(action) {
+            const pageId = typeof window.pageId !== 'undefined' ? window.pageId : null;
+            let message = '';
+
+            switch(action) {
+                case 'summarize':
+                    message = 'Please summarize this page for me.';
+                    break;
+                case 'action_items':
+                    message = 'Extract action items from this page.';
+                    break;
+                case 'improve':
+                    message = 'How can I improve the content on this page?';
+                    break;
+                case 'translate':
+                    message = 'Translate this page to Spanish.';
+                    break;
+            }
+
+            // Add to input and send
+            document.getElementById('aiChatInput').value = message;
+            sendAIMessage();
+        }
+
+        // Transcription Functions
+        function loadTranscripts() {
+            fetch('/notes/api/ai/transcripts')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('transcriptsList');
+                    const transcripts = data.transcripts || [];
+
+                    if (transcripts.length === 0) {
+                        container.innerHTML = `
+                            <div class="ai-transcripts-title">
+                                <i class="fas fa-history"></i> Recent Transcripts
+                            </div>
+                            <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                                No transcripts yet. Upload an audio file to get started.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = `
+                        <div class="ai-transcripts-title">
+                            <i class="fas fa-history"></i> Recent Transcripts
+                        </div>
+                        ${transcripts.map(t => `
+                            <div class="ai-transcript-item" onclick="openTranscript('${t.id}')">
+                                <div class="ai-transcript-name">
+                                    <i class="fas fa-file-audio"></i>
+                                    ${t.filename || t.name || 'Transcript'}
+                                </div>
+                                <div class="ai-transcript-meta">
+                                    ${t.duration || ''} • ${t.created_at ? t.created_at.split('T')[0] : ''}
+                                    <span class="ai-transcript-status ${t.status}">${t.status}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    `;
+                });
+        }
+
+        function loadMeetingTranscripts() {
+            fetch('/notes/api/ai/transcripts')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('meetingTranscriptsList');
+                    const transcripts = (data.transcripts || []).filter(t => t.name);
+
+                    if (transcripts.length === 0) {
+                        container.innerHTML = `
+                            <div class="ai-transcripts-title">
+                                <i class="fas fa-calendar-check"></i> Meeting Recordings
+                            </div>
+                            <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                                No meeting recordings yet.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = `
+                        <div class="ai-transcripts-title">
+                            <i class="fas fa-calendar-check"></i> Meeting Recordings
+                        </div>
+                        ${transcripts.map(t => `
+                            <div class="ai-transcript-item" onclick="openTranscript('${t.id}')">
+                                <div class="ai-transcript-name">
+                                    <i class="fas fa-video"></i>
+                                    ${t.name || 'Meeting'}
+                                </div>
+                                <div class="ai-transcript-meta">
+                                    ${t.duration || ''} • ${t.speakers ? t.speakers.length + ' speakers' : ''}
+                                    <span class="ai-transcript-status ${t.status}">${t.status}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    `;
+                });
+        }
+
+        // File upload handling
+        const uploadZone = document.getElementById('aiUploadZone');
+        if (uploadZone) {
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleAudioFile(files[0]);
+                }
+            });
+        }
+
+        function handleAudioUpload(input) {
+            if (input.files && input.files[0]) {
+                handleAudioFile(input.files[0]);
+            }
+        }
+
+        function handleAudioFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show processing state
+            const uploadZone = document.getElementById('aiUploadZone');
+            const originalContent = uploadZone.innerHTML;
+            uploadZone.innerHTML = `
+                <div class="ai-upload-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                <div class="ai-upload-text">Transcribing ${file.name}...</div>
+                <div class="ai-upload-hint">This may take a moment</div>
+            `;
+
+            fetch('/notes/api/ai/transcribe', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                uploadZone.innerHTML = originalContent;
+                if (data.success) {
+                    showToast('Transcription complete!');
+                    loadTranscripts();
+                    openTranscript(data.transcript.id);
+                } else {
+                    showToast('Transcription failed: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                uploadZone.innerHTML = originalContent;
+                showToast('Transcription failed. Please try again.');
+            });
+        }
+
+        // Meeting Recording Functions
+        function startMeetingRecording() {
+            const meetingName = prompt('Enter meeting name:', 'Team Meeting ' + new Date().toLocaleDateString());
+            if (!meetingName) return;
+
+            fetch('/notes/api/ai/meeting/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: meetingName })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    currentTranscriptId = data.transcript_id;
+                    isRecording = true;
+                    meetingSeconds = 0;
+                    simulatedSegmentIndex = 0;
+
+                    document.getElementById('meetingControls').style.display = 'none';
+                    document.getElementById('meetingRecordingControls').style.display = 'flex';
+                    document.getElementById('liveTranscript').style.display = 'block';
+                    document.getElementById('liveTranscript').innerHTML = '';
+
+                    meetingTimer = setInterval(updateMeetingTimer, 1000);
+
+                    // Simulate live transcription for demo
+                    simulateLiveTranscription();
+
+                    showToast('Recording started');
+                }
+            });
+        }
+
+        function updateMeetingTimer() {
+            meetingSeconds++;
+            const hours = Math.floor(meetingSeconds / 3600);
+            const mins = Math.floor((meetingSeconds % 3600) / 60);
+            const secs = meetingSeconds % 60;
+            const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.getElementById('recordingTime').textContent = timeStr;
+        }
+
+        const simulatedSegments = [
+            { speaker: 'Speaker 1', text: 'Let\'s get started with today\'s meeting.' },
+            { speaker: 'Speaker 2', text: 'Thanks for organizing this. I have some updates on the project.' },
+            { speaker: 'Speaker 1', text: 'Great, please go ahead.' },
+            { speaker: 'Speaker 2', text: 'We\'ve completed the initial phase of development.' },
+            { speaker: 'Speaker 3', text: 'That\'s great progress. What\'s next on the roadmap?' },
+            { speaker: 'Speaker 2', text: 'We\'ll be moving to user testing next week.' },
+            { speaker: 'Speaker 1', text: 'Excellent. Let\'s make sure to document everything.' },
+            { speaker: 'Speaker 3', text: 'I can help with the documentation.' },
+        ];
+
+        function simulateLiveTranscription() {
+            if (!isRecording) return;
+
+            if (simulatedSegmentIndex < simulatedSegments.length) {
+                const segment = simulatedSegments[simulatedSegmentIndex];
+                const timeStr = formatTime(meetingSeconds);
+
+                // Add to UI
+                const liveTranscript = document.getElementById('liveTranscript');
+                const segmentDiv = document.createElement('div');
+                segmentDiv.className = 'ai-transcript-segment';
+                segmentDiv.innerHTML = `
+                    <div class="ai-segment-speaker">
+                        ${segment.speaker} <span class="ai-segment-time">${timeStr}</span>
+                    </div>
+                    <div class="ai-segment-text">${segment.text}</div>
+                `;
+                liveTranscript.appendChild(segmentDiv);
+                liveTranscript.scrollTop = liveTranscript.scrollHeight;
+
+                // Send to API
+                fetch(`/notes/api/ai/meeting/${currentTranscriptId}/segment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start: timeStr,
+                        end: formatTime(meetingSeconds + 5),
+                        speaker: segment.speaker,
+                        text: segment.text
+                    })
+                });
+
+                simulatedSegmentIndex++;
+
+                // Schedule next segment
+                setTimeout(simulateLiveTranscription, 3000 + Math.random() * 2000);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function stopMeetingRecording() {
+            if (!currentTranscriptId) return;
+
+            clearInterval(meetingTimer);
+            isRecording = false;
+
+            fetch(`/notes/api/ai/meeting/${currentTranscriptId}/stop`, {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('meetingControls').style.display = 'flex';
+                document.getElementById('meetingRecordingControls').style.display = 'none';
+                document.getElementById('liveTranscript').style.display = 'none';
+                document.getElementById('meetingTime').textContent = '00:00:00';
+
+                showToast('Recording saved');
+                loadMeetingTranscripts();
+
+                if (data.success) {
+                    openTranscript(currentTranscriptId);
+                }
+
+                currentTranscriptId = null;
+            });
+        }
+
+        // Transcript Viewer
+        function openTranscript(transcriptId) {
+            currentTranscriptId = transcriptId;
+
+            fetch(`/notes/api/ai/transcript/${transcriptId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const transcript = data.transcript;
+                    if (!transcript) return;
+
+                    document.getElementById('transcriptViewerTitle').textContent = transcript.name || transcript.filename || 'Transcript';
+
+                    let bodyHTML = '';
+
+                    // Summary section
+                    if (transcript.summary) {
+                        bodyHTML += `
+                            <div class="transcript-summary">
+                                <div class="transcript-summary-title">
+                                    <i class="fas fa-lightbulb"></i> Summary
+                                </div>
+                                <p>${transcript.summary}</p>
+                            </div>
+                        `;
+                    }
+
+                    // Action items section
+                    if (transcript.action_items && transcript.action_items.length > 0) {
+                        bodyHTML += `
+                            <div class="transcript-actions-section">
+                                <div class="transcript-summary-title" style="color: var(--green);">
+                                    <i class="fas fa-tasks"></i> Action Items
+                                </div>
+                                <ul style="margin: 0; padding-left: 20px;">
+                                    ${transcript.action_items.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+
+                    // Full transcript
+                    bodyHTML += `
+                        <div class="transcript-full">
+                            <h3 style="margin-bottom: 16px;">Full Transcript</h3>
+                            ${transcript.segments ? transcript.segments.map(seg => `
+                                <div class="ai-transcript-segment">
+                                    <div class="ai-segment-speaker">
+                                        ${seg.speaker} <span class="ai-segment-time">${seg.start}</span>
+                                    </div>
+                                    <div class="ai-segment-text">${seg.text}</div>
+                                </div>
+                            `).join('') : `<p>${transcript.full_text || 'No transcript available.'}</p>`}
+                        </div>
+                    `;
+
+                    document.getElementById('transcriptViewerBody').innerHTML = bodyHTML;
+                    document.getElementById('transcriptViewer').classList.add('visible');
+                });
+        }
+
+        function closeTranscriptViewer() {
+            document.getElementById('transcriptViewer').classList.remove('visible');
+        }
+
+        function copyTranscript() {
+            const body = document.getElementById('transcriptViewerBody');
+            const text = body.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Transcript copied to clipboard');
+            });
+        }
+
+        function transcriptToPage() {
+            if (!currentTranscriptId) return;
+
+            fetch(`/notes/api/ai/transcript/${currentTranscriptId}/to-page`, {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Page created from transcript');
+                    closeTranscriptViewer();
+                    window.location.href = `/notes/page/${data.page_id}`;
+                }
+            });
+        }
+
+        // Close transcript viewer on outside click
+        document.getElementById('transcriptViewer')?.addEventListener('click', (e) => {
+            if (e.target.id === 'transcriptViewer') {
+                closeTranscriptViewer();
+            }
+        });
+
+        // Favorites
+        function toggleFavorite() {
+            const btn = document.getElementById('favoriteBtn');
+            const icon = btn.querySelector('i');
+            const isFavorite = icon.classList.contains('fas');
+
+            if (isFavorite) {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                showToast('Removed from favorites');
+            } else {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                showToast('Added to favorites');
+            }
+            // Save to server
+        }
+
+        // Settings
+        function setFontSize(size) {
+            document.body.style.fontSize = size + 'px';
+            localStorage.setItem('fontSize', size);
+        }
+
+        function toggleFullWidth() {
+            const toggle = document.getElementById('fullWidthToggle');
+            toggle.classList.toggle('active');
+            document.querySelectorAll('.page-scroller').forEach(el => {
+                el.classList.toggle('full-width', toggle.classList.contains('active'));
+            });
+        }
+
+        function toggleLineNumbers() {
+            document.getElementById('lineNumbersToggle').classList.toggle('active');
+        }
+
+        function toggleSpellcheck() {
+            const active = document.getElementById('spellcheckToggle').classList.toggle('active');
+            document.querySelectorAll('[contenteditable]').forEach(el => {
+                el.spellcheck = active;
+            });
+        }
+
+        // Formatting
+        function formatText(format) {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            document.execCommand(format === 'code' ? 'insertHTML' : format,
+                false,
+                format === 'code' ? `<code>${selection.toString()}</code>` : null);
+        }
+
+        function toggleColorDropdown() {
+            event.stopPropagation();
+            document.getElementById('colorDropdown').classList.toggle('visible');
+        }
+
+        function setTextColor(color) {
+            document.execCommand('foreColor', false, color);
+            document.getElementById('colorDropdown').classList.remove('visible');
+        }
+
+        function setBackgroundColor(color) {
+            document.execCommand('hiliteColor', false, color);
+            document.getElementById('colorDropdown').classList.remove('visible');
+        }
+
+        // Create page
+        function createNewPage() {
+            window.location.href = '/notes/page/new';
+        }
+
+        // Folder management
+        let selectedFolderIcon = '📁';
+        let selectedFolderColor = '#6940a5';
+        let expandedFolders = {};
+
+        function openNewFolderModal() {
+            document.getElementById('folderModalTitle').textContent = 'New Folder';
+            document.getElementById('editFolderId').value = '';
+            document.getElementById('folderNameInput').value = '';
+            selectedFolderIcon = '📁';
+            selectedFolderColor = '#6940a5';
+            document.querySelectorAll('.folder-icon-option').forEach(o => o.classList.toggle('selected', o.dataset.icon === '📁'));
+            document.querySelectorAll('.folder-color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === '#6940a5'));
+            document.getElementById('folderModal').classList.add('visible');
+            document.getElementById('folderNameInput').focus();
+        }
+
+        function closeFolderModal() {
+            document.getElementById('folderModal').classList.remove('visible');
+        }
+
+        function selectFolderIcon(icon) {
+            selectedFolderIcon = icon;
+            document.querySelectorAll('.folder-icon-option').forEach(o => {
+                o.classList.toggle('selected', o.dataset.icon === icon);
+            });
+        }
+
+        function selectFolderColor(color) {
+            selectedFolderColor = color;
+            document.querySelectorAll('.folder-color-option').forEach(o => {
+                o.classList.toggle('selected', o.dataset.color === color);
+            });
+        }
+
+        function saveFolderForm(e) {
+            e.preventDefault();
+            const folderId = document.getElementById('editFolderId').value;
+            const name = document.getElementById('folderNameInput').value;
+
+            const data = {
+                name: name,
+                icon: selectedFolderIcon,
+                color: selectedFolderColor
+            };
+
+            const url = folderId ? `/notes/api/folders/${folderId}` : '/notes/api/folders';
+            const method = folderId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(response => {
+                if (response.success) {
+                    showToast(folderId ? 'Folder updated!' : 'Folder created!');
+                    closeFolderModal();
+                    location.reload();
+                }
+            });
+        }
+
+        function editFolder(folderId) {
+            fetch(`/notes/api/folders/${folderId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.folder) {
+                        const folder = data.folder;
+                        document.getElementById('folderModalTitle').textContent = 'Edit Folder';
+                        document.getElementById('editFolderId').value = folder.id;
+                        document.getElementById('folderNameInput').value = folder.name;
+                        selectedFolderIcon = folder.icon;
+                        selectedFolderColor = folder.color;
+                        document.querySelectorAll('.folder-icon-option').forEach(o => o.classList.toggle('selected', o.dataset.icon === folder.icon));
+                        document.querySelectorAll('.folder-color-option').forEach(o => o.classList.toggle('selected', o.dataset.color === folder.color));
+                        document.getElementById('folderModal').classList.add('visible');
+                    }
+                });
+        }
+
+        function deleteFolder(folderId) {
+            if (confirm('Delete this folder? Pages inside will be moved out of the folder.')) {
+                fetch(`/notes/api/folders/${folderId}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(response => {
+                        if (response.success) {
+                            showToast('Folder deleted');
+                            location.reload();
+                        }
+                    });
+            }
+        }
+
+        function toggleFolder(folderId) {
+            const folderItem = document.querySelector(`.folder-item[data-folder-id="${folderId}"]`);
+            const toggle = folderItem.querySelector('.folder-toggle');
+            const pagesDiv = document.getElementById(`folder-pages-${folderId}`);
+
+            const isExpanded = toggle.classList.contains('expanded');
+
+            if (isExpanded) {
+                toggle.classList.remove('expanded');
+                pagesDiv.style.display = 'none';
+                expandedFolders[folderId] = false;
+            } else {
+                toggle.classList.add('expanded');
+                pagesDiv.style.display = 'block';
+                expandedFolders[folderId] = true;
+                loadFolderPages(folderId);
+            }
+        }
+
+        function loadFolderPages(folderId) {
+            const pagesDiv = document.getElementById(`folder-pages-${folderId}`);
+
+            fetch(`/notes/api/folders/${folderId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.folder && data.folder.pages && data.folder.pages.length > 0) {
+                        pagesDiv.innerHTML = data.folder.pages.map(page => `
+                            <div class="folder-page-item" onclick="window.location.href='/notes/page/${page.id}'">
+                                <span class="page-icon">${page.icon || '📄'}</span>
+                                <span>${page.title}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        pagesDiv.innerHTML = '<div class="folder-empty">No pages in this folder</div>';
+                    }
+                });
+        }
+
+        function movePageToFolder(pageId, folderId) {
+            fetch(`/notes/api/pages/${pageId}/move-to-folder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder_id: folderId })
+            })
+            .then(r => r.json())
+            .then(response => {
+                if (response.success) {
+                    showToast('Page moved to folder');
+                    location.reload();
+                }
+            });
+        }
+
+        // Toast notifications
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<i class="fas fa-check"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Slash menu
+        function filterSlashMenu(query) {
+            const items = document.querySelectorAll('.slash-menu-item');
+            const sections = document.querySelectorAll('.slash-menu-section');
+            query = query.toLowerCase();
+
+            items.forEach(item => {
+                const keywords = item.dataset.keywords || '';
+                const title = item.querySelector('.slash-menu-item-title').textContent.toLowerCase();
+                const matches = title.includes(query) || keywords.includes(query);
+                item.style.display = matches ? 'flex' : 'none';
+            });
+
+            // Hide empty sections
+            sections.forEach(section => {
+                const nextItems = [];
+                let next = section.nextElementSibling;
+                while (next && !next.classList.contains('slash-menu-section')) {
+                    if (next.classList.contains('slash-menu-item')) nextItems.push(next);
+                    next = next.nextElementSibling;
+                }
+                const hasVisible = nextItems.some(item => item.style.display !== 'none');
+                section.style.display = hasVisible ? 'block' : 'none';
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+            // Search: Cmd/Ctrl + K
+            if (modifier && e.key === 'k') {
+                e.preventDefault();
+                openSearch();
+            }
+
+            // New page: Cmd/Ctrl + N
+            if (modifier && e.key === 'n') {
+                e.preventDefault();
+                createNewPage();
+            }
+
+            // Toggle sidebar: Cmd/Ctrl + \
+            if (modifier && e.key === '\\') {
+                e.preventDefault();
+                toggleSidebar();
+            }
+
+            // Toggle dark mode: Cmd/Ctrl + Shift + L
+            if (modifier && e.shiftKey && e.key === 'L') {
+                e.preventDefault();
+                toggleTheme();
+            }
+
+            // Undo: Cmd/Ctrl + Z
+            if (modifier && !e.shiftKey && e.key === 'z') {
+                // Browser handles this
+            }
+
+            // Redo: Cmd/Ctrl + Shift + Z
+            if (modifier && e.shiftKey && e.key === 'z') {
+                // Browser handles this
+            }
+
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.visible, .search-modal-overlay.visible').forEach(modal => {
+                    modal.classList.remove('visible');
+                });
+            }
+
+            // Show keyboard shortcuts: Cmd/Ctrl + /
+            if (modifier && e.key === '/') {
+                e.preventDefault();
+                document.getElementById('shortcutsModal').classList.add('visible');
+            }
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#colorBtn')) {
+                document.getElementById('colorDropdown').classList.remove('visible');
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+
+            // Load saved settings
+            const fontSize = localStorage.getItem('fontSize');
+            if (fontSize) {
+                document.body.style.fontSize = fontSize + 'px';
+                const select = document.getElementById('fontSizeSelect');
+                if (select) select.value = fontSize;
+            }
+        });
+
+        // Page menu
+        function openPageMenu(event) {
+            // Implementation for page options menu
+        }
+
+        function toggleWorkspaceMenu() {
+            // Implementation for workspace switcher
+        }
+
+        // Undo/Redo
+        function undo() {
+            document.execCommand('undo');
+        }
+
+        function redo() {
+            document.execCommand('redo');
+        }
+
+        function turnInto() {
+            // Show block type menu
+        }
+
+        function commentOnSelection() {
+            toggleComments();
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,686 @@
+{% extends "base_notion.html" %}
+
+{% block title %}Profile - My Notes{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-item">
+    <i class="fas fa-user"></i>
+    <span>Profile</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+    .profile-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px;
+        animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Profile Header */
+    .profile-header {
+        display: flex;
+        gap: 32px;
+        align-items: flex-start;
+        padding-bottom: 32px;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 32px;
+    }
+
+    .avatar-section {
+        position: relative;
+    }
+
+    .avatar-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        color: white;
+        font-weight: 600;
+        overflow: hidden;
+    }
+
+    .avatar-large img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-edit {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 36px;
+        height: 36px;
+        background: var(--accent-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        cursor: pointer;
+        border: 3px solid var(--bg-primary);
+        transition: all 0.2s;
+    }
+
+    .avatar-edit:hover {
+        transform: scale(1.1);
+    }
+
+    .profile-info {
+        flex: 1;
+    }
+
+    .profile-name {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .profile-email {
+        font-size: 15px;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+    }
+
+    .profile-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--bg-secondary);
+        border-radius: 20px;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .badge i {
+        font-size: 12px;
+    }
+
+    .badge.school {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+        color: var(--purple);
+    }
+
+    .badge.major {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--green);
+    }
+
+    .badge.year {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--orange);
+    }
+
+    /* Stats */
+    .profile-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    /* Sections */
+    .profile-section {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-title i {
+        color: var(--accent-color);
+    }
+
+    .edit-btn {
+        padding: 8px 16px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .edit-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    /* Form */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group.full-width {
+        grid-column: span 2;
+    }
+
+    .form-group label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    .form-value {
+        font-size: 15px;
+        color: var(--text-primary);
+        padding: 12px 16px;
+        background: var(--bg-secondary);
+        border-radius: 10px;
+    }
+
+    .form-input {
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 15px;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        transition: all 0.2s;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    textarea.form-input {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    /* Edit Mode */
+    .view-mode, .edit-mode {
+        display: none;
+    }
+
+    .profile-section.viewing .view-mode {
+        display: block;
+    }
+
+    .profile-section.editing .edit-mode {
+        display: block;
+    }
+
+    .profile-section.viewing .edit-mode,
+    .profile-section.editing .view-mode {
+        display: none;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-cancel {
+        padding: 10px 20px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        background: var(--bg-hover);
+    }
+
+    .btn-save {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Success Toast */
+    .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        padding: 12px 24px;
+        background: #10b981;
+        color: white;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: transform 0.3s ease;
+        z-index: 1000;
+    }
+
+    .toast.show {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 768px) {
+        .profile-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .profile-badges {
+            justify-content: center;
+        }
+
+        .profile-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group.full-width {
+            grid-column: span 1;
+        }
+    }
+</style>
+
+<div class="page-scroller">
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="avatar-section">
+                <div class="avatar-large" id="avatarDisplay">
+                    {% if user.avatar %}
+                    <img src="{{ user.avatar }}" alt="{{ user.name }}">
+                    {% else %}
+                    {{ user.name[0]|upper if user.name else 'U' }}
+                    {% endif %}
+                </div>
+                <div class="avatar-edit" onclick="changeAvatar()" title="Change photo">
+                    <i class="fas fa-camera"></i>
+                </div>
+            </div>
+            <div class="profile-info">
+                <h1 class="profile-name">{{ user.name or 'User' }}</h1>
+                <p class="profile-email">{{ user.email }}</p>
+                <div class="profile-badges">
+                    {% if user.school %}
+                    <span class="badge school">
+                        <i class="fas fa-university"></i>
+                        {{ user.school }}
+                    </span>
+                    {% endif %}
+                    {% if user.major %}
+                    <span class="badge major">
+                        <i class="fas fa-book"></i>
+                        {{ user.major }}
+                    </span>
+                    {% endif %}
+                    {% if user.year %}
+                    <span class="badge year">
+                        <i class="fas fa-graduation-cap"></i>
+                        {{ user.year }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="profile-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="pagesCount">0</div>
+                <div class="stat-label">Pages Created</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="classesCount">0</div>
+                <div class="stat-label">Classes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="blocksCount">0</div>
+                <div class="stat-label">Blocks Written</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ user.created_at[:10] if user.created_at else 'Today' }}</div>
+                <div class="stat-label">Member Since</div>
+            </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="profile-section viewing" id="personalSection">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-user"></i>
+                    Personal Information
+                </h2>
+                <button class="edit-btn" onclick="toggleEdit('personalSection')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+            </div>
+
+            <div class="view-mode">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <div class="form-value">{{ user.name or 'Not set' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <div class="form-value">{{ user.email }}</div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Bio</label>
+                        <div class="form-value">{{ user.bio or 'No bio yet' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-mode">
+                <form onsubmit="savePersonalInfo(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" class="form-input" id="editName" value="{{ user.name or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" class="form-input" value="{{ user.email }}" disabled style="opacity: 0.6;">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Bio</label>
+                            <textarea class="form-input" id="editBio" placeholder="Tell us about yourself...">{{ user.bio or '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="toggleEdit('personalSection')">Cancel</button>
+                        <button type="submit" class="btn-save">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Academic Information -->
+        <div class="profile-section viewing" id="academicSection">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-graduation-cap"></i>
+                    Academic Information
+                </h2>
+                <button class="edit-btn" onclick="toggleEdit('academicSection')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+            </div>
+
+            <div class="view-mode">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>School</label>
+                        <div class="form-value">{{ user.school or 'Not set' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Year</label>
+                        <div class="form-value">{{ user.year or 'Not set' }}</div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Major</label>
+                        <div class="form-value">{{ user.major or 'Not set' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-mode">
+                <form onsubmit="saveAcademicInfo(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>School</label>
+                            <input type="text" class="form-input" id="editSchool" value="{{ user.school or '' }}" placeholder="Search for your school...">
+                        </div>
+                        <div class="form-group">
+                            <label>Year</label>
+                            <select class="form-input" id="editYear">
+                                <option value="">Select year</option>
+                                <option value="Freshman" {% if user.year == 'Freshman' %}selected{% endif %}>Freshman</option>
+                                <option value="Sophomore" {% if user.year == 'Sophomore' %}selected{% endif %}>Sophomore</option>
+                                <option value="Junior" {% if user.year == 'Junior' %}selected{% endif %}>Junior</option>
+                                <option value="Senior" {% if user.year == 'Senior' %}selected{% endif %}>Senior</option>
+                                <option value="Graduate" {% if user.year == 'Graduate' %}selected{% endif %}>Graduate</option>
+                                <option value="Other" {% if user.year == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Major</label>
+                            <input type="text" class="form-input" id="editMajor" value="{{ user.major or '' }}" placeholder="e.g. Computer Science">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="toggleEdit('academicSection')">Cancel</button>
+                        <button type="submit" class="btn-save">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMessage">Changes saved!</span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load stats
+    async function loadStats() {
+        try {
+            // Get pages
+            const pagesRes = await fetch('/notes/api/pages');
+            const pagesData = await pagesRes.json();
+            document.getElementById('pagesCount').textContent = pagesData.pages?.length || 0;
+
+            // Calculate blocks
+            let blocks = 0;
+            if (pagesData.pages) {
+                pagesData.pages.forEach(p => blocks += p.blocks?.length || 0);
+            }
+            document.getElementById('blocksCount').textContent = blocks;
+
+            // Get classes
+            const classesRes = await fetch('/notes/api/classes');
+            const classesData = await classesRes.json();
+            document.getElementById('classesCount').textContent = classesData.classes?.length || 0;
+        } catch (e) {
+            console.error('Failed to load stats:', e);
+        }
+    }
+
+    function toggleEdit(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (section.classList.contains('viewing')) {
+            section.classList.remove('viewing');
+            section.classList.add('editing');
+        } else {
+            section.classList.remove('editing');
+            section.classList.add('viewing');
+        }
+    }
+
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastMessage').textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function savePersonalInfo(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('editName').value;
+        const bio = document.getElementById('editBio').value;
+
+        try {
+            const res = await fetch('/auth/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, bio })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                showToast('Personal information updated!');
+                toggleEdit('personalSection');
+                location.reload();
+            }
+        } catch (err) {
+            alert('Failed to save changes');
+        }
+    }
+
+    async function saveAcademicInfo(e) {
+        e.preventDefault();
+
+        const school = document.getElementById('editSchool').value;
+        const major = document.getElementById('editMajor').value;
+        const year = document.getElementById('editYear').value;
+
+        try {
+            const res = await fetch('/auth/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ school, major, year })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                showToast('Academic information updated!');
+                toggleEdit('academicSection');
+                location.reload();
+            }
+        } catch (err) {
+            alert('Failed to save changes');
+        }
+    }
+
+    function changeAvatar() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // In production, upload to server
+                // For demo, use data URL
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const avatar = e.target.result;
+                    try {
+                        const res = await fetch('/auth/api/profile', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ avatar })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            showToast('Avatar updated!');
+                            location.reload();
+                        }
+                    } catch (err) {
+                        alert('Failed to update avatar');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadStats);
+</script>
+{% endblock %}

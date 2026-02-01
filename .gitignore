@@ -63,3 +63,8 @@ instance/
 .Trashes
 ehthumbs.db
 Thumbs.db
+# Virtual environment
+venv/
+
+# GC Notes
+gcnotes/

@@ -1,0 +1,1823 @@
+{% extends "base_notion.html" %}
+
+{% block title %}Home - My Notes{% endblock %}
+
+{% block sidebar_pages %}
+{% if favorites %}
+<div class="favorites-section" style="margin-bottom: 8px;">
+    <div class="section-header">
+        <span>Favorites</span>
+    </div>
+    {% for p in favorites %}
+    <div class="page-item" onclick="window.location.href='{{ url_for('notes.view_page', page_id=p.id) }}'">
+        <span class="page-icon">{{ p.icon|safe }}</span>
+        <span class="page-title">{{ p.title }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% for page in pages %}
+<div class="page-item"
+     draggable="true"
+     data-page-id="{{ page.id }}"
+     onclick="window.location.href='{{ url_for('notes.view_page', page_id=page.id) }}'">
+    <div class="page-toggle"><i class="fas fa-chevron-right fa-xs"></i></div>
+    <span class="page-icon">{{ page.icon|safe }}</span>
+    <span class="page-title">{{ page.title }}</span>
+    <div class="page-actions" onclick="event.stopPropagation()">
+        <div class="page-action-btn" onclick="deletePage('{{ page.id }}')" title="Delete">
+            <i class="fas fa-trash"></i>
+        </div>
+        <div class="page-action-btn" onclick="duplicatePage('{{ page.id }}')" title="Duplicate">
+            <i class="fas fa-copy"></i>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-item">
+    <i class="fas fa-home"></i>
+    <span>Home</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+    .home-wrapper {
+        min-height: 100vh;
+        background: var(--bg-secondary);
+    }
+
+    /* Top Navigation Bar */
+    .home-navbar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-color);
+        padding: 0 40px;
+        backdrop-filter: blur(20px);
+    }
+
+    .home-navbar-inner {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+    }
+
+    .home-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .home-logo-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+    }
+
+    /* Tab Navigation */
+    .home-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+    }
+
+    .home-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        background: transparent;
+    }
+
+    .home-tab:hover {
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    .home-tab.active {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .home-tab i {
+        font-size: 16px;
+    }
+
+    .home-tab.active i {
+        color: var(--accent-color);
+    }
+
+    .home-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .home-action-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--bg-secondary);
+        border: none;
+    }
+
+    .home-action-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .home-new-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .home-new-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Main Content Area */
+    .home-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 40px;
+    }
+
+    .tab-panel {
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .tab-panel.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Overview Tab */
+    .overview-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 32px;
+    }
+
+    @media (max-width: 1100px) {
+        .overview-grid { grid-template-columns: 1fr; }
+    }
+
+    .welcome-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-radius: 24px;
+        padding: 40px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    [data-theme="dark"] .welcome-card {
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    }
+
+    .welcome-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 70%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 60%);
+    }
+
+    .welcome-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .welcome-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        color: white;
+        margin-bottom: 16px;
+    }
+
+    .welcome-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 8px;
+    }
+
+    .welcome-subtitle {
+        font-size: 15px;
+        color: rgba(255,255,255,0.85);
+        max-width: 400px;
+        line-height: 1.6;
+    }
+
+    .welcome-stats {
+        display: flex;
+        gap: 40px;
+        margin-top: 28px;
+    }
+
+    .welcome-stat {
+        text-align: left;
+    }
+
+    .welcome-stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+    }
+
+    .welcome-stat-label {
+        font-size: 13px;
+        color: rgba(255,255,255,0.7);
+        margin-top: 2px;
+    }
+
+    /* Quick Links */
+    .quick-links {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    @media (max-width: 900px) {
+        .quick-links { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .quick-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 24px 16px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+    }
+
+    .quick-link:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        border-color: transparent;
+    }
+
+    .quick-link-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        transition: transform 0.3s;
+    }
+
+    .quick-link:hover .quick-link-icon {
+        transform: scale(1.1);
+    }
+
+    .quick-link-icon.pages { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
+    .quick-link-icon.calendar { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+    .quick-link-icon.classes { background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; }
+    .quick-link-icon.ai { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+
+    .quick-link-text {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    /* Section Headers */
+    .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-head h2 i {
+        font-size: 16px;
+        color: var(--accent-color);
+    }
+
+    .section-head a {
+        font-size: 13px;
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .section-head a:hover {
+        text-decoration: underline;
+    }
+
+    /* Pages List */
+    .pages-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .page-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .page-row:hover {
+        border-color: var(--accent-color);
+        background: var(--bg-hover);
+    }
+
+    .page-row-icon {
+        font-size: 24px;
+    }
+
+    .page-row-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .page-row-title {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .page-row-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    .page-row-actions {
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .page-row:hover .page-row-actions {
+        opacity: 1;
+    }
+
+    .page-row-action {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .page-row-action:hover {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .page-row-action.delete:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--red);
+    }
+
+    /* Sidebar Widgets */
+    .sidebar-widgets {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .widget {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .widget-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .widget-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .widget-header h3 i {
+        color: var(--accent-color);
+    }
+
+    .widget-header a {
+        font-size: 12px;
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+
+    /* Mini Calendar */
+    .mini-cal {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        text-align: center;
+    }
+
+    .mini-cal .day-name {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 6px 0;
+        text-transform: uppercase;
+    }
+
+    .mini-cal .day {
+        font-size: 12px;
+        padding: 8px 4px;
+        border-radius: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .mini-cal .day:hover {
+        background: var(--bg-hover);
+    }
+
+    .mini-cal .day.today {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        font-weight: 600;
+    }
+
+    .mini-cal .day.has-event::after {
+        content: '';
+        display: block;
+        width: 4px;
+        height: 4px;
+        background: var(--accent-color);
+        border-radius: 50%;
+        margin: 2px auto 0;
+    }
+
+    /* Class Item */
+    .class-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .class-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .class-row:first-child {
+        padding-top: 0;
+    }
+
+    .class-row:hover .class-row-name {
+        color: var(--accent-color);
+    }
+
+    .class-row-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .class-row-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .class-row-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+        transition: color 0.2s;
+    }
+
+    .class-row-code {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    /* Event Item */
+    .event-row {
+        display: flex;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .event-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .event-row:first-child {
+        padding-top: 0;
+    }
+
+    .event-date-box {
+        width: 44px;
+        height: 44px;
+        background: var(--bg-secondary);
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .event-date-month {
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--accent-color);
+        text-transform: uppercase;
+    }
+
+    .event-date-day {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .event-row-info h4 {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .event-row-info p {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    /* Empty State */
+    .empty-widget {
+        text-align: center;
+        padding: 24px 16px;
+        color: var(--text-muted);
+    }
+
+    .empty-widget i {
+        font-size: 28px;
+        margin-bottom: 10px;
+        display: block;
+        opacity: 0.5;
+    }
+
+    .empty-widget p {
+        font-size: 13px;
+    }
+
+    .empty-widget a {
+        display: inline-block;
+        margin-top: 10px;
+        color: var(--accent-color);
+        font-size: 13px;
+        text-decoration: none;
+    }
+
+    /* Pages Tab Content */
+    .pages-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+
+    .pages-search {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 18px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        width: 320px;
+    }
+
+    .pages-search input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        color: var(--text-primary);
+        outline: none;
+    }
+
+    .pages-search i {
+        color: var(--text-muted);
+    }
+
+    .pages-view-toggle {
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: var(--bg-secondary);
+        border-radius: 10px;
+    }
+
+    .view-btn {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        background: transparent;
+    }
+
+    .view-btn.active {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .pages-grid-view {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+    }
+
+    .page-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 24px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    .page-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 16px 16px 0 0;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s;
+    }
+
+    .page-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1);
+        border-color: transparent;
+    }
+
+    .page-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .page-card-icon {
+        font-size: 36px;
+        margin-bottom: 14px;
+    }
+
+    .page-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .page-card-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .page-card-meta .fav {
+        color: var(--yellow);
+    }
+
+    .new-page-card {
+        border: 2px dashed var(--border-color);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 160px;
+        color: var(--text-muted);
+        background: transparent;
+    }
+
+    .new-page-card:hover {
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+        background: var(--bg-hover);
+    }
+
+    .new-page-card i {
+        font-size: 32px;
+        margin-bottom: 10px;
+        transition: transform 0.3s;
+    }
+
+    .new-page-card:hover i {
+        transform: rotate(90deg);
+    }
+
+    /* Calendar Tab */
+    .calendar-embed {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 32px;
+        min-height: 600px;
+    }
+
+    .cal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+
+    .cal-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .cal-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cal-nav-btn {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .cal-nav-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .cal-today-btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .cal-today-btn:hover {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+    }
+
+    .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+        background: var(--border-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .cal-day-header {
+        padding: 12px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--bg-secondary);
+        text-transform: uppercase;
+    }
+
+    .cal-day-cell {
+        min-height: 100px;
+        padding: 8px;
+        background: var(--bg-primary);
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .cal-day-cell:hover {
+        background: var(--bg-hover);
+    }
+
+    .cal-day-num {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+    }
+
+    .cal-day-cell.today .cal-day-num {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cal-day-cell.other-month {
+        opacity: 0.4;
+    }
+
+    .cal-event {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Classes Tab */
+    .classes-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+    }
+
+    .classes-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .add-class-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #a855f7, #7c3aed);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .add-class-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
+    }
+
+    .classes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+    }
+
+    .class-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .class-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+        border-color: transparent;
+    }
+
+    .class-card-header {
+        padding: 24px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .class-card-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -30%;
+        width: 80%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 50%);
+    }
+
+    .class-card-icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .class-card-code {
+        font-size: 11px;
+        opacity: 0.9;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .class-card-name {
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 4px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .class-card-body {
+        padding: 18px 24px;
+    }
+
+    .class-info-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .class-info-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .class-info-row i {
+        width: 16px;
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+
+    /* AI Tab */
+    .ai-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+        .ai-content { grid-template-columns: 1fr; }
+    }
+
+    .ai-feature-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 32px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .ai-feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.1);
+        border-color: var(--accent-color);
+    }
+
+    .ai-feature-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-bottom: 20px;
+    }
+
+    .ai-feature-icon.chat { background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05)); color: #3b82f6; }
+    .ai-feature-icon.transcribe { background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)); color: #10b981; }
+    .ai-feature-icon.meeting { background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05)); color: #a855f7; }
+    .ai-feature-icon.write { background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); color: #f59e0b; }
+
+    .ai-feature-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .ai-feature-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    /* Empty state for tabs */
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-state-icon {
+        width: 100px;
+        height: 100px;
+        background: var(--bg-secondary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        font-size: 40px;
+        color: var(--text-muted);
+    }
+
+    .empty-state h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        color: var(--text-muted);
+        max-width: 300px;
+        margin: 0 auto 24px;
+    }
+
+    .empty-state-btn {
+        padding: 12px 28px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .empty-state-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+</style>
+
+<div class="home-wrapper">
+    <!-- Top Navigation -->
+    <div class="home-navbar">
+        <div class="home-navbar-inner">
+            <div class="home-logo">
+                <div class="home-logo-icon"><i class="fas fa-book-open"></i></div>
+                <span>Workspace</span>
+            </div>
+
+            <div class="home-tabs">
+                <button class="home-tab active" data-tab="overview">
+                    <i class="fas fa-th-large"></i>
+                    <span>Overview</span>
+                </button>
+                <button class="home-tab" data-tab="pages">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Pages</span>
+                </button>
+                <button class="home-tab" data-tab="calendar">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
+                </button>
+                <button class="home-tab" data-tab="classes">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Classes</span>
+                </button>
+                <button class="home-tab" data-tab="ai">
+                    <i class="fas fa-robot"></i>
+                    <span>AI</span>
+                </button>
+            </div>
+
+            <div class="home-actions">
+                <button class="home-action-btn" onclick="openSearch()" title="Search (⌘K)">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="home-action-btn" onclick="toggleAI()" title="AI Assistant">
+                    <i class="fas fa-robot"></i>
+                </button>
+                <button class="home-new-btn" onclick="createNewPage()">
+                    <i class="fas fa-plus"></i>
+                    <span>New Page</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="home-content">
+        <!-- Overview Tab -->
+        <div class="tab-panel active" data-panel="overview">
+            <!-- Welcome Card -->
+            <div class="welcome-card">
+                <div class="welcome-content">
+                    <div class="welcome-badge">
+                        <i class="fas fa-sparkles"></i>
+                        <span>Welcome back</span>
+                    </div>
+                    <h1 class="welcome-title">Your Workspace</h1>
+                    <p class="welcome-subtitle">Capture ideas, organize your thoughts, and bring your projects to life.</p>
+                    <div class="welcome-stats">
+                        <div class="welcome-stat">
+                            <div class="welcome-stat-value">{{ pages|length }}</div>
+                            <div class="welcome-stat-label">Pages</div>
+                        </div>
+                        <div class="welcome-stat">
+                            <div class="welcome-stat-value">{{ favorites|length if favorites else 0 }}</div>
+                            <div class="welcome-stat-label">Favorites</div>
+                        </div>
+                        <div class="welcome-stat">
+                            <div class="welcome-stat-value" id="totalBlocks">0</div>
+                            <div class="welcome-stat-label">Blocks</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="quick-links">
+                <div class="quick-link" onclick="switchTab('pages')">
+                    <div class="quick-link-icon pages"><i class="fas fa-file-alt"></i></div>
+                    <span class="quick-link-text">Pages</span>
+                </div>
+                <div class="quick-link" onclick="switchTab('calendar')">
+                    <div class="quick-link-icon calendar"><i class="fas fa-calendar-alt"></i></div>
+                    <span class="quick-link-text">Calendar</span>
+                </div>
+                <div class="quick-link" onclick="switchTab('classes')">
+                    <div class="quick-link-icon classes"><i class="fas fa-graduation-cap"></i></div>
+                    <span class="quick-link-text">Classes</span>
+                </div>
+                <div class="quick-link" onclick="switchTab('ai')">
+                    <div class="quick-link-icon ai"><i class="fas fa-robot"></i></div>
+                    <span class="quick-link-text">AI Assistant</span>
+                </div>
+            </div>
+
+            <div class="overview-grid">
+                <div class="main-area">
+                    <!-- Recent Pages -->
+                    <div class="section-head">
+                        <h2><i class="fas fa-clock"></i> Recent Pages</h2>
+                        <a href="#" onclick="switchTab('pages'); return false;">View all</a>
+                    </div>
+
+                    {% if pages|length > 0 %}
+                    <div class="pages-list">
+                        {% for page in pages[:5] %}
+                        <div class="page-row" onclick="window.location.href='{{ url_for('notes.view_page', page_id=page.id) }}'">
+                            <span class="page-row-icon">{{ page.icon|safe }}</span>
+                            <div class="page-row-info">
+                                <div class="page-row-title">{{ page.title }}</div>
+                                <div class="page-row-meta">{{ page.blocks|length }} blocks{% if page.is_favorite %} <i class="fas fa-star" style="color: var(--yellow); margin-left: 4px;"></i>{% endif %}</div>
+                            </div>
+                            <div class="page-row-actions" onclick="event.stopPropagation()">
+                                <div class="page-row-action" onclick="duplicatePage('{{ page.id }}')" title="Duplicate">
+                                    <i class="fas fa-copy"></i>
+                                </div>
+                                <div class="page-row-action delete" onclick="deletePage('{{ page.id }}')" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="far fa-file-alt"></i></div>
+                        <h3>No pages yet</h3>
+                        <p>Create your first page to start organizing your ideas</p>
+                        <button class="empty-state-btn" onclick="createNewPage()">
+                            <i class="fas fa-plus" style="margin-right: 8px;"></i>Create a Page
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sidebar Widgets -->
+                <div class="sidebar-widgets">
+                    <!-- Calendar Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-calendar"></i> Calendar</h3>
+                            <a href="#" onclick="switchTab('calendar'); return false;">View all</a>
+                        </div>
+                        <div class="mini-cal" id="miniCalendar"></div>
+                    </div>
+
+                    <!-- Upcoming Events -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-bell"></i> Upcoming</h3>
+                        </div>
+                        <div id="upcomingEvents">
+                            <div class="empty-widget">
+                                <i class="far fa-calendar-check"></i>
+                                <p>No upcoming events</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classes Widget -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-graduation-cap"></i> Classes</h3>
+                            <a href="#" onclick="switchTab('classes'); return false;">View all</a>
+                        </div>
+                        <div id="classesWidget">
+                            <div class="empty-widget">
+                                <i class="fas fa-graduation-cap"></i>
+                                <p>Loading classes...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pages Tab -->
+        <div class="tab-panel" data-panel="pages">
+            <div class="pages-header">
+                <div class="pages-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="pagesSearchInput" placeholder="Search pages..." oninput="filterPages(this.value)">
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div class="pages-view-toggle">
+                        <button class="view-btn active" data-view="grid" onclick="setPageView('grid')">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="view-btn" data-view="list" onclick="setPageView('list')">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                    <button class="home-action-btn" onclick="openNewFolderModal()" title="New Folder" style="background: var(--bg-secondary);">
+                        <i class="fas fa-folder-plus"></i>
+                    </button>
+                    <button class="home-new-btn" onclick="createNewPage()">
+                        <i class="fas fa-plus"></i>
+                        <span>New Page</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Folders Section -->
+            {% if folders is defined and folders|length > 0 %}
+            <div class="folders-grid" style="margin-bottom: 32px;">
+                <div class="section-head" style="margin-bottom: 16px;">
+                    <h2><i class="fas fa-folder"></i> Folders</h2>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                    {% for folder in folders %}
+                    <div class="folder-card" onclick="toggleFolderExpand('{{ folder.id }}')" style="
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 14px 18px;
+                        background: var(--bg-primary);
+                        border: 1px solid var(--border-color);
+                        border-radius: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        min-width: 180px;
+                    ">
+                        <span style="font-size: 24px; color: {{ folder.color }};">{{ folder.icon }}</span>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">{{ folder.name }}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">{{ folder.page_ids|default([])|length }} pages</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pages|length > 0 %}
+            <div class="pages-grid-view" id="pagesContainer">
+                {% for page in pages %}
+                <div class="page-card" data-title="{{ page.title|lower }}" onclick="window.location.href='{{ url_for('notes.view_page', page_id=page.id) }}'">
+                    <span class="page-card-icon">{{ page.icon|safe }}</span>
+                    <div class="page-card-title">{{ page.title }}</div>
+                    <div class="page-card-meta">
+                        <span>{{ page.blocks|length }} blocks</span>
+                        {% if page.is_favorite %}<i class="fas fa-star fav"></i>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="page-card new-page-card" onclick="createNewPage()">
+                    <i class="fas fa-plus"></i>
+                    <span>New Page</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="far fa-file-alt"></i></div>
+                <h3>No pages yet</h3>
+                <p>Create your first page to start organizing your ideas</p>
+                <button class="empty-state-btn" onclick="createNewPage()">
+                    <i class="fas fa-plus" style="margin-right: 8px;"></i>Create a Page
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Calendar Tab -->
+        <div class="tab-panel" data-panel="calendar">
+            <div class="calendar-embed">
+                <div class="cal-header">
+                    <h2 class="cal-title" id="calMonthTitle">January 2025</h2>
+                    <div class="cal-nav">
+                        <button class="cal-today-btn" onclick="goToToday()">Today</button>
+                        <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="cal-grid" id="calendarGrid"></div>
+            </div>
+        </div>
+
+        <!-- Classes Tab -->
+        <div class="tab-panel" data-panel="classes">
+            <div class="classes-header">
+                <h2 class="classes-title">My Classes</h2>
+                <button class="add-class-btn" onclick="window.location.href='/notes/classes'">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Class</span>
+                </button>
+            </div>
+            <div class="classes-grid" id="classesGrid">
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-graduation-cap"></i></div>
+                    <h3>Loading classes...</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Tab -->
+        <div class="tab-panel" data-panel="ai">
+            <div class="ai-content">
+                <div class="ai-feature-card" onclick="toggleAI(); setTimeout(() => switchAITab('chat'), 100);">
+                    <div class="ai-feature-icon chat"><i class="fas fa-comments"></i></div>
+                    <h3 class="ai-feature-title">AI Chat</h3>
+                    <p class="ai-feature-desc">Chat with AI to get help with your notes, brainstorm ideas, or answer questions about any topic.</p>
+                </div>
+                <div class="ai-feature-card" onclick="toggleAI(); setTimeout(() => switchAITab('transcribe'), 100);">
+                    <div class="ai-feature-icon transcribe"><i class="fas fa-microphone"></i></div>
+                    <h3 class="ai-feature-title">Transcribe Audio</h3>
+                    <p class="ai-feature-desc">Convert speech to text instantly. Perfect for lectures, interviews, and voice memos.</p>
+                </div>
+                <div class="ai-feature-card" onclick="toggleAI(); setTimeout(() => switchAITab('meeting'), 100);">
+                    <div class="ai-feature-icon meeting"><i class="fas fa-video"></i></div>
+                    <h3 class="ai-feature-title">Meeting Notes</h3>
+                    <p class="ai-feature-desc">Automatically generate meeting notes, action items, and summaries from recordings.</p>
+                </div>
+                <div class="ai-feature-card" onclick="toggleAI();">
+                    <div class="ai-feature-icon write"><i class="fas fa-magic"></i></div>
+                    <h3 class="ai-feature-title">AI Writing</h3>
+                    <p class="ai-feature-desc">Let AI help you write, edit, summarize, and improve your content effortlessly.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Calculate total blocks
+let totalBlocks = 0;
+{% for page in pages %}
+totalBlocks += {{ page.blocks|length }};
+{% endfor %}
+document.getElementById('totalBlocks').textContent = totalBlocks;
+
+// Tab Navigation
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.home-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+
+    // Update panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.dataset.panel === tabName);
+    });
+
+    // Load content for specific tabs
+    if (tabName === 'calendar') {
+        renderCalendar();
+    } else if (tabName === 'classes') {
+        loadClassesTab();
+    }
+}
+
+// Tab click handlers
+document.querySelectorAll('.home-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+// Mini Calendar
+function renderMiniCalendar() {
+    const calendar = document.getElementById('miniCalendar');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const today = now.getDate();
+
+    const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    let html = dayNames.map(d => `<div class="day-name">${d}</div>`).join('');
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div class="day"></div>';
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = day === today;
+        html += `<div class="day${isToday ? ' today' : ''}">${day}</div>`;
+    }
+
+    calendar.innerHTML = html;
+}
+
+// Full Calendar
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let calendarEvents = [];
+
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const titleEl = document.getElementById('calMonthTitle');
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    titleEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    let html = dayNames.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+    const today = new Date();
+
+    // Previous month days
+    for (let i = firstDay - 1; i >= 0; i--) {
+        html += `<div class="cal-day-cell other-month"><div class="cal-day-num">${prevMonthDays - i}</div></div>`;
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayEvents = calendarEvents.filter(e => e.start && e.start.startsWith(dateStr));
+
+        let eventsHtml = dayEvents.slice(0, 2).map(e =>
+            `<div class="cal-event" style="background: ${e.color || '#667eea'}; color: white;">${e.title}</div>`
+        ).join('');
+
+        html += `<div class="cal-day-cell${isToday ? ' today' : ''}">
+            <div class="cal-day-num">${day}</div>
+            ${eventsHtml}
+        </div>`;
+    }
+
+    // Next month days
+    const totalCells = firstDay + daysInMonth;
+    const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (let i = 1; i <= remainingCells; i++) {
+        html += `<div class="cal-day-cell other-month"><div class="cal-day-num">${i}</div></div>`;
+    }
+
+    grid.innerHTML = html;
+}
+
+function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendar();
+}
+
+function goToToday() {
+    const now = new Date();
+    currentMonth = now.getMonth();
+    currentYear = now.getFullYear();
+    renderCalendar();
+}
+
+// Load classes widget
+async function loadClassesWidget() {
+    try {
+        const res = await fetch('/notes/api/classes');
+        const data = await res.json();
+        const container = document.getElementById('classesWidget');
+
+        if (data.classes && data.classes.length > 0) {
+            container.innerHTML = data.classes.slice(0, 3).map(cls => `
+                <div class="class-row" onclick="window.location.href='/notes/class/${cls.id}'">
+                    <div class="class-row-dot" style="background: ${cls.color}"></div>
+                    <div class="class-row-info">
+                        <div class="class-row-name">${cls.name}</div>
+                        <div class="class-row-code">${cls.code}</div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `
+                <div class="empty-widget">
+                    <i class="fas fa-graduation-cap"></i>
+                    <p>No classes yet</p>
+                    <a href="/notes/classes">Add a class</a>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error('Failed to load classes:', e);
+    }
+}
+
+// Load classes tab
+async function loadClassesTab() {
+    try {
+        const res = await fetch('/notes/api/classes');
+        const data = await res.json();
+        const grid = document.getElementById('classesGrid');
+
+        if (data.classes && data.classes.length > 0) {
+            grid.innerHTML = data.classes.map(cls => `
+                <div class="class-card" onclick="window.location.href='/notes/class/${cls.id}'">
+                    <div class="class-card-header" style="background: ${cls.color}">
+                        <div class="class-card-icon">${cls.icon}</div>
+                        <div class="class-card-code">${cls.code}</div>
+                        <div class="class-card-name">${cls.name}</div>
+                    </div>
+                    <div class="class-card-body">
+                        <div class="class-info-row">
+                            <i class="fas fa-user"></i>
+                            <span>${cls.instructor?.name || 'TBA'}</span>
+                        </div>
+                        <div class="class-info-row">
+                            <i class="fas fa-clock"></i>
+                            <span>${cls.schedule?.days?.join(', ') || 'Schedule TBA'}</span>
+                        </div>
+                        <div class="class-info-row">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${cls.schedule?.location || 'Location TBA'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            grid.innerHTML = `
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <div class="empty-state-icon"><i class="fas fa-graduation-cap"></i></div>
+                    <h3>No classes yet</h3>
+                    <p>Add your classes to track assignments and schedules</p>
+                    <button class="empty-state-btn" onclick="window.location.href='/notes/classes'">Add Your First Class</button>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error('Failed to load classes:', e);
+    }
+}
+
+// Load upcoming events
+async function loadUpcomingEvents() {
+    try {
+        const res = await fetch('/notes/api/calendar/events');
+        const data = await res.json();
+        calendarEvents = data.events || [];
+
+        const container = document.getElementById('upcomingEvents');
+        const now = new Date();
+        const upcoming = calendarEvents
+            .filter(e => new Date(e.start) >= now)
+            .sort((a, b) => new Date(a.start) - new Date(b.start))
+            .slice(0, 3);
+
+        if (upcoming.length > 0) {
+            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            container.innerHTML = upcoming.map(event => {
+                const date = new Date(event.start);
+                return `
+                    <div class="event-row">
+                        <div class="event-date-box">
+                            <div class="event-date-month">${months[date.getMonth()]}</div>
+                            <div class="event-date-day">${date.getDate()}</div>
+                        </div>
+                        <div class="event-row-info">
+                            <h4>${event.title}</h4>
+                            <p>${event.type || 'Event'}${event.location ? ' • ' + event.location : ''}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    } catch (e) {
+        console.error('Failed to load events:', e);
+    }
+}
+
+// Page view toggle
+function setPageView(view) {
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
+    });
+
+    const container = document.getElementById('pagesContainer');
+    if (view === 'list') {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '8px';
+        container.querySelectorAll('.page-card').forEach(card => {
+            card.style.display = 'flex';
+            card.style.alignItems = 'center';
+            card.style.gap = '14px';
+            card.style.padding = '14px 18px';
+        });
+    } else {
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(240px, 1fr))';
+        container.querySelectorAll('.page-card').forEach(card => {
+            card.style.display = 'block';
+            card.style.padding = '24px';
+        });
+    }
+}
+
+// Filter pages
+function filterPages(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('#pagesContainer .page-card').forEach(card => {
+        const title = card.dataset.title || '';
+        card.style.display = (title.includes(q) || card.classList.contains('new-page-card')) ? '' : 'none';
+    });
+}
+
+function deletePage(pageId) {
+    if (confirm('Move this page to trash?')) {
+        fetch(`/notes/api/page/${pageId}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Moved to trash');
+                    setTimeout(() => location.reload(), 500);
+                }
+            });
+    }
+}
+
+function duplicatePage(pageId) {
+    fetch(`/notes/api/page/${pageId}/duplicate`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Page duplicated');
+                window.location.href = `/notes/page/${data.page.id}`;
+            }
+        });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    renderMiniCalendar();
+    loadClassesWidget();
+    loadUpcomingEvents();
+});
+</script>
+{% endblock %}

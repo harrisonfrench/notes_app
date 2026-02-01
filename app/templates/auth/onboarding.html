@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Profile - NotesApp</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-light: #eef2ff;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --accent-light: #1e1b4b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .onboarding-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .onboarding-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .onboarding-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .onboarding-header p {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .progress-step {
+            flex: 1;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+
+        .progress-step.active {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .progress-step.completed {
+            background: #10b981;
+        }
+
+        /* Steps */
+        .step {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .step-subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* Search Input */
+        .search-container {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-container i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 16px 16px 48px;
+            border: 2px solid var(--border-color);
+            border-radius: 14px;
+            font-size: 16px;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-light);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Options List */
+        .options-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--bg-primary);
+        }
+
+        .option-item {
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .option-item:last-child {
+            border-bottom: none;
+        }
+
+        .option-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .option-item.selected {
+            background: var(--accent-light);
+            border-color: var(--accent);
+        }
+
+        .option-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .option-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .option-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .option-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .option-check {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .option-item.selected .option-check {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+            color: white;
+        }
+
+        /* Year Selection */
+        .year-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .year-option {
+            padding: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--bg-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .year-option:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .year-option.selected {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .year-option .year-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .year-option .year-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Navigation */
+        .step-navigation {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-btn.back {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .nav-btn.back:hover {
+            background: var(--bg-secondary);
+        }
+
+        .nav-btn.next {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+        }
+
+        .nav-btn.next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-btn.next:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .nav-btn .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        .nav-btn.loading .spinner { display: inline-block; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Skip link */
+        .skip-link {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .skip-link a {
+            color: var(--text-muted);
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .skip-link a:hover {
+            color: var(--text-secondary);
+            text-decoration: underline;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            z-index: 100;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-secondary);
+        }
+
+        /* Empty state */
+        .no-results {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .no-results i {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <div class="onboarding-container">
+        <div class="onboarding-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <span class="logo-text">NotesApp</span>
+            </div>
+            <h1>Let's personalize your experience</h1>
+            <p>Tell us a bit about yourself so we can tailor the app for you</p>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-step active" id="progress1"></div>
+            <div class="progress-step" id="progress2"></div>
+            <div class="progress-step" id="progress3"></div>
+        </div>
+
+        <!-- Step 1: School Selection -->
+        <div class="step active" id="step1">
+            <h2 class="step-title">What school do you attend?</h2>
+            <p class="step-subtitle">Search for your university, college, or institution</p>
+
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-input" id="schoolSearch" placeholder="Search schools..." oninput="filterSchools()">
+            </div>
+
+            <div class="options-list" id="schoolList">
+                {% for school in schools %}
+                <div class="option-item" data-value="{{ school.name }}" onclick="selectSchool(this)">
+                    <div class="option-icon">
+                        {% if school.type == 'Private' %}
+                        <i class="fas fa-university" style="color: #6366f1;"></i>
+                        {% elif school.type == 'Public' %}
+                        <i class="fas fa-landmark" style="color: #10b981;"></i>
+                        {% else %}
+                        <i class="fas fa-school" style="color: #f59e0b;"></i>
+                        {% endif %}
+                    </div>
+                    <div class="option-info">
+                        <div class="option-name">{{ school.name }}</div>
+                        {% if school.state %}
+                        <div class="option-meta">{{ school.state }} &bull; {{ school.type }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="option-check">
+                        <i class="fas fa-check" style="font-size: 12px;"></i>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="step-navigation">
+                <button class="nav-btn next" id="nextBtn1" onclick="nextStep()" disabled>
+                    Continue
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Major Selection -->
+        <div class="step" id="step2">
+            <h2 class="step-title">What's your major?</h2>
+            <p class="step-subtitle">Select your field of study</p>
+
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-input" id="majorSearch" placeholder="Search majors..." oninput="filterMajors()">
+            </div>
+
+            <div class="options-list" id="majorList">
+                {% for major in majors %}
+                <div class="option-item" data-value="{{ major }}" onclick="selectMajor(this)">
+                    <div class="option-icon">
+                        {% if 'Engineering' in major or 'Computer' in major or 'Data' in major %}
+                        <i class="fas fa-microchip" style="color: #6366f1;"></i>
+                        {% elif 'Business' in major or 'Finance' in major or 'Marketing' in major or 'Economics' in major %}
+                        <i class="fas fa-chart-line" style="color: #10b981;"></i>
+                        {% elif 'Medicine' in major or 'Health' in major or 'Nursing' in major or 'Biology' in major %}
+                        <i class="fas fa-heartbeat" style="color: #ef4444;"></i>
+                        {% elif 'Art' in major or 'Music' in major or 'Theater' in major or 'Film' in major or 'Design' in major %}
+                        <i class="fas fa-palette" style="color: #ec4899;"></i>
+                        {% elif 'Psychology' in major or 'Sociology' in major or 'Political' in major %}
+                        <i class="fas fa-brain" style="color: #f59e0b;"></i>
+                        {% else %}
+                        <i class="fas fa-book" style="color: #8b5cf6;"></i>
+                        {% endif %}
+                    </div>
+                    <div class="option-info">
+                        <div class="option-name">{{ major }}</div>
+                    </div>
+                    <div class="option-check">
+                        <i class="fas fa-check" style="font-size: 12px;"></i>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="step-navigation">
+                <button class="nav-btn back" onclick="prevStep()">Back</button>
+                <button class="nav-btn next" id="nextBtn2" onclick="nextStep()" disabled>Continue</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Year Selection -->
+        <div class="step" id="step3">
+            <h2 class="step-title">What year are you?</h2>
+            <p class="step-subtitle">This helps us recommend relevant content</p>
+
+            <div class="year-grid">
+                <div class="year-option" data-value="Freshman" onclick="selectYear(this)">
+                    <div class="year-icon">1</div>
+                    <div class="year-label">Freshman</div>
+                </div>
+                <div class="year-option" data-value="Sophomore" onclick="selectYear(this)">
+                    <div class="year-icon">2</div>
+                    <div class="year-label">Sophomore</div>
+                </div>
+                <div class="year-option" data-value="Junior" onclick="selectYear(this)">
+                    <div class="year-icon">3</div>
+                    <div class="year-label">Junior</div>
+                </div>
+                <div class="year-option" data-value="Senior" onclick="selectYear(this)">
+                    <div class="year-icon">4</div>
+                    <div class="year-label">Senior</div>
+                </div>
+                <div class="year-option" data-value="Graduate" onclick="selectYear(this)">
+                    <div class="year-icon"><i class="fas fa-graduation-cap" style="font-size: 24px;"></i></div>
+                    <div class="year-label">Graduate</div>
+                </div>
+                <div class="year-option" data-value="Other" onclick="selectYear(this)">
+                    <div class="year-icon"><i class="fas fa-ellipsis-h" style="font-size: 24px;"></i></div>
+                    <div class="year-label">Other</div>
+                </div>
+            </div>
+
+            <div class="step-navigation">
+                <button class="nav-btn back" onclick="prevStep()">Back</button>
+                <button class="nav-btn next" id="finishBtn" onclick="finishOnboarding()" disabled>
+                    <span class="spinner"></span>
+                    <span>Get Started</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="skip-link">
+            <a href="#" onclick="skipOnboarding(); return false;">Skip for now</a>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let selectedSchool = null;
+        let selectedMajor = null;
+        let selectedYear = null;
+
+        const schoolsData = {{ schools|tojson|safe }};
+        const majorsData = {{ majors|tojson|safe }};
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            document.getElementById('themeIcon').className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        const savedTheme = localStorage.getItem('theme') ||
+            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+
+        function filterSchools() {
+            const query = document.getElementById('schoolSearch').value.toLowerCase();
+            const items = document.querySelectorAll('#schoolList .option-item');
+            let visible = 0;
+
+            items.forEach(item => {
+                const name = item.dataset.value.toLowerCase();
+                if (name.includes(query)) {
+                    item.style.display = 'flex';
+                    visible++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Show no results message
+            let noResults = document.querySelector('#schoolList .no-results');
+            if (visible === 0) {
+                if (!noResults) {
+                    noResults = document.createElement('div');
+                    noResults.className = 'no-results';
+                    noResults.innerHTML = '<i class="fas fa-search"></i><div>No schools found</div>';
+                    document.getElementById('schoolList').appendChild(noResults);
+                }
+                noResults.style.display = 'block';
+            } else if (noResults) {
+                noResults.style.display = 'none';
+            }
+        }
+
+        function filterMajors() {
+            const query = document.getElementById('majorSearch').value.toLowerCase();
+            const items = document.querySelectorAll('#majorList .option-item');
+            let visible = 0;
+
+            items.forEach(item => {
+                const name = item.dataset.value.toLowerCase();
+                if (name.includes(query)) {
+                    item.style.display = 'flex';
+                    visible++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            let noResults = document.querySelector('#majorList .no-results');
+            if (visible === 0) {
+                if (!noResults) {
+                    noResults = document.createElement('div');
+                    noResults.className = 'no-results';
+                    noResults.innerHTML = '<i class="fas fa-search"></i><div>No majors found</div>';
+                    document.getElementById('majorList').appendChild(noResults);
+                }
+                noResults.style.display = 'block';
+            } else if (noResults) {
+                noResults.style.display = 'none';
+            }
+        }
+
+        function selectSchool(element) {
+            document.querySelectorAll('#schoolList .option-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedSchool = element.dataset.value;
+            document.getElementById('nextBtn1').disabled = false;
+        }
+
+        function selectMajor(element) {
+            document.querySelectorAll('#majorList .option-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedMajor = element.dataset.value;
+            document.getElementById('nextBtn2').disabled = false;
+        }
+
+        function selectYear(element) {
+            document.querySelectorAll('.year-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedYear = element.dataset.value;
+            document.getElementById('finishBtn').disabled = false;
+        }
+
+        function nextStep() {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`progress${currentStep}`).classList.remove('active');
+            document.getElementById(`progress${currentStep}`).classList.add('completed');
+
+            currentStep++;
+
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.getElementById(`progress${currentStep}`).classList.add('active');
+        }
+
+        function prevStep() {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`progress${currentStep}`).classList.remove('active');
+
+            currentStep--;
+
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            document.getElementById(`progress${currentStep}`).classList.add('active');
+            document.getElementById(`progress${currentStep}`).classList.remove('completed');
+        }
+
+        async function finishOnboarding() {
+            const btn = document.getElementById('finishBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/auth/api/onboarding', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        school: selectedSchool,
+                        major: selectedMajor,
+                        year: selectedYear
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                }
+            } catch (err) {
+                alert('Something went wrong. Please try again.');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        async function skipOnboarding() {
+            try {
+                const res = await fetch('/auth/api/onboarding', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        school: null,
+                        major: null,
+                        year: null
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                }
+            } catch (err) {
+                window.location.href = '/notes/';
+            }
+        }
+    </script>
+</body>
+</html>

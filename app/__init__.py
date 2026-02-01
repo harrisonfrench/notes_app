@@ -7,8 +7,12 @@ app.secret_key = 'your-secret'  # Replace with an environment
 
 # Register Blueprints
 from app.blueprints.examples import examples
+from app.blueprints.notes import notes
+from app.blueprints.auth import auth_bp
 
 app.register_blueprint(examples, url_prefix='/example')
+app.register_blueprint(notes, url_prefix='/notes')
+app.register_blueprint(auth_bp)
 
 from . import routes
 

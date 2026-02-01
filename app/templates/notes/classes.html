@@ -1,0 +1,1119 @@
+{% extends "base_notion.html" %}
+
+{% block title %}My Classes - My Notes{% endblock %}
+
+{% block sidebar_pages %}
+<div class="sidebar-item" onclick="window.location.href='{{ url_for('notes.calendar_view') }}'">
+    <i class="fas fa-calendar-alt"></i>
+    <span>Calendar</span>
+</div>
+<div class="sidebar-item active" onclick="window.location.href='{{ url_for('notes.classes_list') }}'">
+    <i class="fas fa-graduation-cap"></i>
+    <span>Classes</span>
+</div>
+<div class="section-header" style="margin-top: 16px;">
+    <span>Your Classes</span>
+</div>
+{% for cls in classes %}
+<div class="page-item" onclick="window.location.href='{{ url_for('notes.class_view', class_id=cls.id) }}'">
+    <span class="page-icon">{{ cls.icon }}</span>
+    <span class="page-title">{{ cls.code }}</span>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-item">
+    <i class="fas fa-graduation-cap"></i>
+    <span>Classes</span>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .classes-container {
+        padding: 32px 40px;
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .classes-hero {
+        background: linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%);
+        border-radius: 20px;
+        padding: 32px 40px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 16px 48px rgba(168, 85, 247, 0.25);
+    }
+
+    [data-theme="dark"] .classes-hero {
+        background: linear-gradient(135deg, #581c87 0%, #4338ca 50%, #1e40af 100%);
+    }
+
+    .classes-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 60%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+    }
+
+    .classes-hero-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .classes-hero-left h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 8px;
+    }
+
+    .classes-hero-left p {
+        color: rgba(255,255,255,0.85);
+        font-size: 15px;
+    }
+
+    .classes-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .classes-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .add-class-btn {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .add-class-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+
+    .term-section {
+        margin-bottom: 40px;
+    }
+
+    .term-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .term-title i {
+        color: var(--accent-color);
+    }
+
+    .classes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 24px;
+    }
+
+    .class-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .class-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+        border-color: transparent;
+    }
+
+    .class-card-header {
+        padding: 24px;
+        color: white;
+        position: relative;
+        overflow: visible;
+    }
+
+    .class-card-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -30%;
+        width: 80%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+    }
+
+    .class-card-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .class-card-code {
+        font-size: 12px;
+        opacity: 0.9;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .class-card-name {
+        font-size: 20px;
+        font-weight: 600;
+        margin-top: 6px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .class-card-body {
+        padding: 20px 24px;
+    }
+
+    .class-info-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+
+    .class-info-row i {
+        width: 18px;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .class-card-footer {
+        padding: 14px 24px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .upcoming-badge {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.1));
+        color: var(--red);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    /* Add Class Modal */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+    }
+
+    .modal.visible {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--bg-primary);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 14px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-row-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-section {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .form-section-title {
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .day-selector {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .day-btn {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.15s;
+    }
+
+    .day-btn:hover {
+        background: var(--bg-hover);
+    }
+
+    .day-btn.active {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+    }
+
+    .color-selector {
+        display: flex;
+        gap: 8px;
+    }
+
+    .color-option {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+
+    .color-option.selected {
+        border-color: var(--text-primary);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+    }
+
+    .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+        background: var(--bg-hover);
+    }
+
+    .btn-primary {
+        background: var(--accent-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--accent-hover);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .empty-state-title {
+        font-size: 20px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .empty-state-text {
+        font-size: 14px;
+        max-width: 300px;
+        margin: 0 auto 20px;
+    }
+
+    /* Class Card Actions */
+    .class-card-actions {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 10;
+    }
+
+    .class-card:hover .class-card-actions {
+        opacity: 1;
+    }
+
+    .class-action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        border: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+
+    .class-action-btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: scale(1.1);
+    }
+
+    .class-action-btn.delete:hover {
+        background: rgba(239, 68, 68, 0.9);
+    }
+
+    /* Delete Confirmation Modal */
+    .confirm-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 300;
+    }
+
+    .confirm-modal.visible {
+        display: flex;
+    }
+
+    .confirm-content {
+        background: var(--bg-primary);
+        border-radius: 16px;
+        padding: 28px;
+        max-width: 400px;
+        text-align: center;
+        animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .confirm-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        color: var(--red);
+        font-size: 24px;
+    }
+
+    .confirm-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .confirm-text {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }
+
+    .confirm-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    }
+
+    .btn-danger {
+        background: var(--red);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="classes-container">
+    <!-- Hero Section -->
+    <div class="classes-hero">
+        <div class="classes-hero-content">
+            <div class="classes-hero-left">
+                <h1><i class="fas fa-graduation-cap" style="margin-right: 12px;"></i>My Classes</h1>
+                <p>Manage your courses, track assignments, and stay on top of your academic life</p>
+            </div>
+            <button class="add-class-btn" onclick="openAddClassModal()" style="padding: 14px 24px; font-size: 15px;">
+                <i class="fas fa-plus"></i> Add Class
+            </button>
+        </div>
+    </div>
+
+    <div class="classes-header">
+        <h2 class="classes-title"><i class="fas fa-book" style="margin-right: 10px; color: var(--accent-color);"></i>Current Semester</h2>
+        <button class="add-class-btn" onclick="openAddClassModal()" style="padding: 10px 16px; font-size: 13px;">
+            <i class="fas fa-plus"></i> Add Class
+        </button>
+    </div>
+
+    {% if classes %}
+    <div class="term-section">
+        <h2 class="term-title">Spring 2024</h2>
+        <div class="classes-grid">
+            {% for cls in classes %}
+            <div class="class-card" onclick="window.location.href='{{ url_for('notes.class_view', class_id=cls.id) }}'">
+                <div class="class-card-header" style="background: {{ cls.color }}">
+                    <div class="class-card-actions" onclick="event.stopPropagation()">
+                        <button class="class-action-btn" onclick="openEditClassModal('{{ cls.id }}')" title="Edit">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="class-action-btn delete" onclick="confirmDeleteClass('{{ cls.id }}', '{{ cls.name }}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="class-card-icon">{{ cls.icon }}</div>
+                    <div class="class-card-code">{{ cls.code }}</div>
+                    <div class="class-card-name">{{ cls.name }}</div>
+                </div>
+                <div class="class-card-body">
+                    <div class="class-info-row">
+                        <i class="fas fa-user"></i>
+                        <span>{{ cls.instructor.name or 'TBA' }}</span>
+                    </div>
+                    <div class="class-info-row">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ cls.schedule.days|join(', ')|title if cls.schedule.days else 'Schedule TBA' }} {{ cls.schedule.start_time or '' }}</span>
+                    </div>
+                    <div class="class-info-row">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ cls.schedule.location or 'Location TBA' }}</span>
+                    </div>
+                </div>
+                <div class="class-card-footer">
+                    <span>{{ cls.credits }} credits</span>
+                    {% if cls.assignments %}
+                    {% set pending = cls.assignments|selectattr('completed', 'equalto', false)|list|length %}
+                    {% if pending > 0 %}
+                    <span class="upcoming-badge">{{ pending }} due soon</span>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-graduation-cap"></i></div>
+        <div class="empty-state-title">No classes yet</div>
+        <div class="empty-state-text">Add your classes to track assignments, schedules, and more</div>
+        <button class="btn btn-primary" onclick="openAddClassModal()">Add Your First Class</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal" id="addClassModal" onclick="if(event.target===this)closeAddClassModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">Add New Class</span>
+            <button class="modal-close" onclick="closeAddClassModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="addClassForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Course Code *</label>
+                        <input type="text" class="form-input" id="classCode" placeholder="e.g. CS101" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Credits</label>
+                        <input type="number" class="form-input" id="classCredits" value="3" min="1" max="6">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Course Name *</label>
+                    <input type="text" class="form-input" id="className" placeholder="e.g. Introduction to Computer Science" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" id="classDescription" rows="2" placeholder="Brief course description..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Icon</label>
+                        <select class="form-input" id="classIcon">
+                            <option value="📚">📚 Book</option>
+                            <option value="💻">💻 Computer</option>
+                            <option value="📐">📐 Math</option>
+                            <option value="🔬">🔬 Science</option>
+                            <option value="🎨">🎨 Art</option>
+                            <option value="📝">📝 Writing</option>
+                            <option value="🌍">🌍 Geography</option>
+                            <option value="⚗️">⚗️ Chemistry</option>
+                            <option value="🧬">🧬 Biology</option>
+                            <option value="📊">📊 Statistics</option>
+                            <option value="🎵">🎵 Music</option>
+                            <option value="🏛️">🏛️ History</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Color</label>
+                        <div class="color-selector">
+                            <div class="color-option selected" data-color="#6940a5" style="background:#6940a5" onclick="selectClassColor('#6940a5')"></div>
+                            <div class="color-option" data-color="#2383e2" style="background:#2383e2" onclick="selectClassColor('#2383e2')"></div>
+                            <div class="color-option" data-color="#0f7b6c" style="background:#0f7b6c" onclick="selectClassColor('#0f7b6c')"></div>
+                            <div class="color-option" data-color="#e03e3e" style="background:#e03e3e" onclick="selectClassColor('#e03e3e')"></div>
+                            <div class="color-option" data-color="#d9730d" style="background:#d9730d" onclick="selectClassColor('#d9730d')"></div>
+                            <div class="color-option" data-color="#dfab01" style="background:#dfab01" onclick="selectClassColor('#dfab01')"></div>
+                        </div>
+                        <input type="hidden" id="classColor" value="#6940a5">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">Instructor Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Instructor Name</label>
+                            <input type="text" class="form-input" id="instructorName" placeholder="Dr. John Smith">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="instructorEmail" placeholder="jsmith@university.edu">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Office</label>
+                            <input type="text" class="form-input" id="instructorOffice" placeholder="Building 101, Room 302">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Office Hours</label>
+                            <input type="text" class="form-input" id="instructorHours" placeholder="Mon/Wed 2-4pm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">Schedule</h3>
+                    <div class="form-group">
+                        <label class="form-label">Days</label>
+                        <div class="day-selector">
+                            <button type="button" class="day-btn" data-day="monday" onclick="toggleDay('monday')">Mon</button>
+                            <button type="button" class="day-btn" data-day="tuesday" onclick="toggleDay('tuesday')">Tue</button>
+                            <button type="button" class="day-btn" data-day="wednesday" onclick="toggleDay('wednesday')">Wed</button>
+                            <button type="button" class="day-btn" data-day="thursday" onclick="toggleDay('thursday')">Thu</button>
+                            <button type="button" class="day-btn" data-day="friday" onclick="toggleDay('friday')">Fri</button>
+                            <button type="button" class="day-btn" data-day="saturday" onclick="toggleDay('saturday')">Sat</button>
+                            <button type="button" class="day-btn" data-day="sunday" onclick="toggleDay('sunday')">Sun</button>
+                        </div>
+                    </div>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label">Start Time</label>
+                            <input type="time" class="form-input" id="scheduleStart" value="09:00">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Time</label>
+                            <input type="time" class="form-input" id="scheduleEnd" value="09:50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Location</label>
+                            <input type="text" class="form-input" id="scheduleLocation" placeholder="Room 101">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddClassModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Edit Class Modal -->
+<div class="modal" id="editClassModal" onclick="if(event.target===this)closeEditClassModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">Edit Class</span>
+            <button class="modal-close" onclick="closeEditClassModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="editClassForm">
+                <input type="hidden" id="editClassId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Course Code *</label>
+                        <input type="text" class="form-input" id="editClassCode" placeholder="e.g. CS101" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Credits</label>
+                        <input type="number" class="form-input" id="editClassCredits" value="3" min="1" max="6">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Course Name *</label>
+                    <input type="text" class="form-input" id="editClassName" placeholder="e.g. Introduction to Computer Science" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" id="editClassDescription" rows="2" placeholder="Brief course description..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Icon</label>
+                        <select class="form-input" id="editClassIcon">
+                            <option value="📚">📚 Book</option>
+                            <option value="💻">💻 Computer</option>
+                            <option value="📐">📐 Math</option>
+                            <option value="🔬">🔬 Science</option>
+                            <option value="🎨">🎨 Art</option>
+                            <option value="📝">📝 Writing</option>
+                            <option value="🌍">🌍 Geography</option>
+                            <option value="⚗️">⚗️ Chemistry</option>
+                            <option value="🧬">🧬 Biology</option>
+                            <option value="📊">📊 Statistics</option>
+                            <option value="🎵">🎵 Music</option>
+                            <option value="🏛️">🏛️ History</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Color</label>
+                        <div class="color-selector" id="editColorSelector">
+                            <div class="color-option" data-color="#6940a5" style="background:#6940a5" onclick="selectEditColor('#6940a5')"></div>
+                            <div class="color-option" data-color="#2383e2" style="background:#2383e2" onclick="selectEditColor('#2383e2')"></div>
+                            <div class="color-option" data-color="#0f7b6c" style="background:#0f7b6c" onclick="selectEditColor('#0f7b6c')"></div>
+                            <div class="color-option" data-color="#e03e3e" style="background:#e03e3e" onclick="selectEditColor('#e03e3e')"></div>
+                            <div class="color-option" data-color="#d9730d" style="background:#d9730d" onclick="selectEditColor('#d9730d')"></div>
+                            <div class="color-option" data-color="#dfab01" style="background:#dfab01" onclick="selectEditColor('#dfab01')"></div>
+                        </div>
+                        <input type="hidden" id="editClassColor" value="#6940a5">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">Instructor Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Instructor Name</label>
+                            <input type="text" class="form-input" id="editInstructorName" placeholder="Dr. John Smith">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="editInstructorEmail" placeholder="jsmith@university.edu">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Office</label>
+                            <input type="text" class="form-input" id="editInstructorOffice" placeholder="Building 101, Room 302">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Office Hours</label>
+                            <input type="text" class="form-input" id="editInstructorHours" placeholder="Mon/Wed 2-4pm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="form-section-title">Schedule</h3>
+                    <div class="form-group">
+                        <label class="form-label">Days</label>
+                        <div class="day-selector" id="editDaySelector">
+                            <button type="button" class="day-btn" data-day="monday" onclick="toggleEditDay('monday')">Mon</button>
+                            <button type="button" class="day-btn" data-day="tuesday" onclick="toggleEditDay('tuesday')">Tue</button>
+                            <button type="button" class="day-btn" data-day="wednesday" onclick="toggleEditDay('wednesday')">Wed</button>
+                            <button type="button" class="day-btn" data-day="thursday" onclick="toggleEditDay('thursday')">Thu</button>
+                            <button type="button" class="day-btn" data-day="friday" onclick="toggleEditDay('friday')">Fri</button>
+                            <button type="button" class="day-btn" data-day="saturday" onclick="toggleEditDay('saturday')">Sat</button>
+                            <button type="button" class="day-btn" data-day="sunday" onclick="toggleEditDay('sunday')">Sun</button>
+                        </div>
+                    </div>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label">Start Time</label>
+                            <input type="time" class="form-input" id="editScheduleStart" value="09:00">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Time</label>
+                            <input type="time" class="form-input" id="editScheduleEnd" value="09:50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Location</label>
+                            <input type="text" class="form-input" id="editScheduleLocation" placeholder="Room 101">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditClassModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="confirm-modal" id="deleteConfirmModal" onclick="if(event.target===this)closeDeleteConfirm()">
+    <div class="confirm-content">
+        <div class="confirm-icon">
+            <i class="fas fa-trash-alt"></i>
+        </div>
+        <h3 class="confirm-title">Delete Class?</h3>
+        <p class="confirm-text">Are you sure you want to delete <strong id="deleteClassName"></strong>? This will also remove all associated calendar events. This action cannot be undone.</p>
+        <div class="confirm-actions">
+            <button class="btn btn-secondary" onclick="closeDeleteConfirm()">Cancel</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn" onclick="deleteClass()">Delete Class</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedDays = [];
+let selectedColor = '#6940a5';
+
+function openAddClassModal() {
+    document.getElementById('addClassModal').classList.add('visible');
+}
+
+function closeAddClassModal() {
+    document.getElementById('addClassModal').classList.remove('visible');
+    document.getElementById('addClassForm').reset();
+    selectedDays = [];
+    document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+}
+
+function toggleDay(day) {
+    const btn = document.querySelector(`.day-btn[data-day="${day}"]`);
+    btn.classList.toggle('active');
+
+    if (selectedDays.includes(day)) {
+        selectedDays = selectedDays.filter(d => d !== day);
+    } else {
+        selectedDays.push(day);
+    }
+}
+
+function selectClassColor(color) {
+    selectedColor = color;
+    document.getElementById('classColor').value = color;
+    document.querySelectorAll('.color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.color === color);
+    });
+}
+
+document.getElementById('addClassForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const data = {
+        code: document.getElementById('classCode').value,
+        name: document.getElementById('className').value,
+        description: document.getElementById('classDescription').value,
+        credits: parseInt(document.getElementById('classCredits').value),
+        icon: document.getElementById('classIcon').value,
+        color: selectedColor,
+        instructor: {
+            name: document.getElementById('instructorName').value,
+            email: document.getElementById('instructorEmail').value,
+            office: document.getElementById('instructorOffice').value,
+            office_hours: document.getElementById('instructorHours').value
+        },
+        schedule: {
+            days: selectedDays,
+            start_time: document.getElementById('scheduleStart').value,
+            end_time: document.getElementById('scheduleEnd').value,
+            location: document.getElementById('scheduleLocation').value
+        }
+    };
+
+    fetch('/notes/api/classes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            showToast('Class added successfully!');
+            window.location.href = `/notes/class/${response.class.id}`;
+        }
+    });
+});
+
+// Edit Class Functionality
+let editSelectedDays = [];
+let editSelectedColor = '#6940a5';
+let classToDelete = null;
+
+function openEditClassModal(classId) {
+    // Fetch class data
+    fetch(`/notes/api/classes/${classId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.class) {
+                populateEditForm(data.class);
+                document.getElementById('editClassModal').classList.add('visible');
+            }
+        });
+}
+
+function populateEditForm(cls) {
+    document.getElementById('editClassId').value = cls.id;
+    document.getElementById('editClassCode').value = cls.code || '';
+    document.getElementById('editClassName').value = cls.name || '';
+    document.getElementById('editClassDescription').value = cls.description || '';
+    document.getElementById('editClassCredits').value = cls.credits || 3;
+    document.getElementById('editClassIcon').value = cls.icon || '📚';
+
+    // Color
+    editSelectedColor = cls.color || '#6940a5';
+    document.getElementById('editClassColor').value = editSelectedColor;
+    document.querySelectorAll('#editColorSelector .color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.color === editSelectedColor);
+    });
+
+    // Instructor
+    const inst = cls.instructor || {};
+    document.getElementById('editInstructorName').value = inst.name || '';
+    document.getElementById('editInstructorEmail').value = inst.email || '';
+    document.getElementById('editInstructorOffice').value = inst.office || '';
+    document.getElementById('editInstructorHours').value = inst.office_hours || '';
+
+    // Schedule
+    const sched = cls.schedule || {};
+    editSelectedDays = sched.days || [];
+    document.querySelectorAll('#editDaySelector .day-btn').forEach(btn => {
+        btn.classList.toggle('active', editSelectedDays.includes(btn.dataset.day));
+    });
+    document.getElementById('editScheduleStart').value = sched.start_time || '09:00';
+    document.getElementById('editScheduleEnd').value = sched.end_time || '09:50';
+    document.getElementById('editScheduleLocation').value = sched.location || '';
+}
+
+function closeEditClassModal() {
+    document.getElementById('editClassModal').classList.remove('visible');
+    document.getElementById('editClassForm').reset();
+    editSelectedDays = [];
+    document.querySelectorAll('#editDaySelector .day-btn').forEach(btn => btn.classList.remove('active'));
+}
+
+function toggleEditDay(day) {
+    const btn = document.querySelector(`#editDaySelector .day-btn[data-day="${day}"]`);
+    btn.classList.toggle('active');
+
+    if (editSelectedDays.includes(day)) {
+        editSelectedDays = editSelectedDays.filter(d => d !== day);
+    } else {
+        editSelectedDays.push(day);
+    }
+}
+
+function selectEditColor(color) {
+    editSelectedColor = color;
+    document.getElementById('editClassColor').value = color;
+    document.querySelectorAll('#editColorSelector .color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.color === color);
+    });
+}
+
+document.getElementById('editClassForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const classId = document.getElementById('editClassId').value;
+    const data = {
+        code: document.getElementById('editClassCode').value,
+        name: document.getElementById('editClassName').value,
+        description: document.getElementById('editClassDescription').value,
+        credits: parseInt(document.getElementById('editClassCredits').value),
+        icon: document.getElementById('editClassIcon').value,
+        color: editSelectedColor,
+        instructor: {
+            name: document.getElementById('editInstructorName').value,
+            email: document.getElementById('editInstructorEmail').value,
+            office: document.getElementById('editInstructorOffice').value,
+            office_hours: document.getElementById('editInstructorHours').value
+        },
+        schedule: {
+            days: editSelectedDays,
+            start_time: document.getElementById('editScheduleStart').value,
+            end_time: document.getElementById('editScheduleEnd').value,
+            location: document.getElementById('editScheduleLocation').value
+        }
+    };
+
+    fetch(`/notes/api/classes/${classId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            showToast('Class updated successfully!');
+            closeEditClassModal();
+            location.reload();
+        }
+    });
+});
+
+// Delete Class Functionality
+function confirmDeleteClass(classId, className) {
+    classToDelete = classId;
+    document.getElementById('deleteClassName').textContent = className;
+    document.getElementById('deleteConfirmModal').classList.add('visible');
+}
+
+function closeDeleteConfirm() {
+    document.getElementById('deleteConfirmModal').classList.remove('visible');
+    classToDelete = null;
+}
+
+function deleteClass() {
+    if (!classToDelete) return;
+
+    fetch(`/notes/api/classes/${classToDelete}`, {
+        method: 'DELETE'
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            showToast('Class deleted successfully!');
+            closeDeleteConfirm();
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

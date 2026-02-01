@@ -1,0 +1,1546 @@
+{% extends "base_notion.html" %}
+
+{% block title %}{{ page.title }} - My Notes{% endblock %}
+
+{% block sidebar_pages %}
+{% if favorites %}
+<div class="favorites-section" style="margin-bottom: 8px;">
+    <div class="section-header">
+        <span>Favorites</span>
+    </div>
+    {% for p in favorites %}
+    <div class="page-item {% if p.id == page.id %}active{% endif %}" onclick="window.location.href='{{ url_for('notes.view_page', page_id=p.id) }}'">
+        <span class="page-icon">{{ p.icon|safe }}</span>
+        <span class="page-title">{{ p.title }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% for p in pages %}
+<div class="page-item {% if p.id == page.id %}active{% endif %}"
+     draggable="true"
+     data-page-id="{{ p.id }}"
+     onclick="window.location.href='{{ url_for('notes.view_page', page_id=p.id) }}'">
+    <div class="page-toggle"><i class="fas fa-chevron-right fa-xs"></i></div>
+    <span class="page-icon">{{ p.icon|safe }}</span>
+    <span class="page-title">{{ p.title }}</span>
+    <div class="page-actions" onclick="event.stopPropagation()">
+        <div class="page-action-btn" onclick="showPageMenu(event, '{{ p.id }}')" title="More">
+            <i class="fas fa-ellipsis-h"></i>
+        </div>
+        <div class="page-action-btn" onclick="createSubPage('{{ p.id }}')" title="Add subpage">
+            <i class="fas fa-plus"></i>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-item" onclick="window.location.href='{{ url_for('notes.index') }}'">
+    <i class="fas fa-home"></i>
+</div>
+<span class="breadcrumb-separator">/</span>
+<div class="breadcrumb-item">
+    <span class="page-icon">{{ page.icon|safe }}</span>
+    <span>{{ page.title }}</span>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Page-specific overrides */
+    .page-scroller {
+        {% if page.full_width %}max-width: 100%;{% endif %}
+        {% if page.small_text %}font-size: 14px;{% endif %}
+    }
+
+    /* Cover gradients */
+    .cover-gradient-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .cover-gradient-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .cover-gradient-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .cover-gradient-orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .cover-gradient-red { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+    .cover-gradient-teal { background: linear-gradient(135deg, #13547a 0%, #80d0c7 100%); }
+
+    /* Callout colors */
+    .callout-gray { background-color: var(--gray-bg); }
+    .callout-red { background-color: var(--red-bg); }
+    .callout-orange { background-color: var(--orange-bg); }
+    .callout-yellow { background-color: var(--yellow-bg); }
+    .callout-green { background-color: var(--green-bg); }
+    .callout-blue { background-color: var(--blue-bg); }
+    .callout-purple { background-color: var(--purple-bg); }
+    .callout-pink { background-color: var(--pink-bg); }
+
+    /* Database view specific */
+    .status-tag {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .tag-gray { background: var(--gray-bg); color: var(--gray); }
+    .tag-red { background: var(--red-bg); color: var(--red); }
+    .tag-orange { background: var(--orange-bg); color: var(--orange); }
+    .tag-yellow { background: var(--yellow-bg); color: var(--yellow); }
+    .tag-green { background: var(--green-bg); color: var(--green); }
+    .tag-blue { background: var(--blue-bg); color: var(--blue); }
+    .tag-purple { background: var(--purple-bg); color: var(--purple); }
+    .tag-pink { background: var(--pink-bg); color: var(--pink); }
+
+    /* Drop indicator for drag and drop */
+    .drop-indicator {
+        height: 4px;
+        background-color: var(--accent-color);
+        border-radius: 2px;
+        margin: 2px 0;
+        display: none;
+    }
+    .drop-indicator.visible {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-scroller {% if page.full_width %}full-width{% endif %}">
+    <!-- Cover -->
+    {% if page.cover %}
+    <div class="page-cover cover-{{ page.cover }}" id="pageCover" style="background-position-y: {{ page.cover_position }}%;">
+        <div class="page-cover-overlay">
+            <div class="cover-btn" onclick="changeCover()"><i class="fas fa-image"></i> Change cover</div>
+            <div class="cover-btn" onclick="repositionCover()"><i class="fas fa-arrows-alt-v"></i> Reposition</div>
+            <div class="cover-btn" onclick="removeCover()"><i class="fas fa-times"></i> Remove</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Page Header -->
+    <div class="page-header {% if page.cover %}has-cover{% endif %}" id="pageHeader">
+        <div class="page-controls">
+            {% if not page.icon %}
+            <div class="page-control-btn" onclick="toggleIconPicker(event)">
+                <i class="far fa-smile"></i> Add icon
+            </div>
+            {% endif %}
+            {% if not page.cover %}
+            <div class="page-control-btn" onclick="toggleCoverPicker(event)">
+                <i class="far fa-image"></i> Add cover
+            </div>
+            {% endif %}
+            <div class="page-control-btn" onclick="addComment()">
+                <i class="far fa-comment"></i> Add comment
+            </div>
+        </div>
+
+        <!-- Icon Picker -->
+        <div class="icon-picker" id="iconPicker">
+            <div class="icon-picker-tabs">
+                <div class="icon-picker-tab active" data-tab="emoji">Emoji</div>
+                <div class="icon-picker-tab" data-tab="custom">Custom</div>
+            </div>
+            <input type="text" class="icon-search" placeholder="Filter..." oninput="filterIcons(this.value)">
+            <div class="icon-grid" id="iconGrid">
+                <div class="icon-item" onclick="setIcon('&#128196;')">&#128196;</div>
+                <div class="icon-item" onclick="setIcon('&#128221;')">&#128221;</div>
+                <div class="icon-item" onclick="setIcon('&#128214;')">&#128214;</div>
+                <div class="icon-item" onclick="setIcon('&#128218;')">&#128218;</div>
+                <div class="icon-item" onclick="setIcon('&#128161;')">&#128161;</div>
+                <div class="icon-item" onclick="setIcon('&#9989;')">&#9989;</div>
+                <div class="icon-item" onclick="setIcon('&#128640;')">&#128640;</div>
+                <div class="icon-item" onclick="setIcon('&#127775;')">&#127775;</div>
+                <div class="icon-item" onclick="setIcon('&#128293;')">&#128293;</div>
+                <div class="icon-item" onclick="setIcon('&#128170;')">&#128170;</div>
+                <div class="icon-item" onclick="setIcon('&#128173;')">&#128173;</div>
+                <div class="icon-item" onclick="setIcon('&#127891;')">&#127891;</div>
+                <div class="icon-item" onclick="setIcon('&#128187;')">&#128187;</div>
+                <div class="icon-item" onclick="setIcon('&#127968;')">&#127968;</div>
+                <div class="icon-item" onclick="setIcon('&#128197;')">&#128197;</div>
+                <div class="icon-item" onclick="setIcon('&#128736;')">&#128736;</div>
+                <div class="icon-item" onclick="setIcon('&#127919;')">&#127919;</div>
+                <div class="icon-item" onclick="setIcon('&#128302;')">&#128302;</div>
+                <div class="icon-item" onclick="setIcon('&#9749;')">&#9749;</div>
+                <div class="icon-item" onclick="setIcon('&#128526;')">&#128526;</div>
+                <div class="icon-item" onclick="setIcon('&#127942;')">&#127942;</div>
+                <div class="icon-item" onclick="setIcon('&#128176;')">&#128176;</div>
+                <div class="icon-item" onclick="setIcon('&#128679;')">&#128679;</div>
+                <div class="icon-item" onclick="setIcon('&#127752;')">&#127752;</div>
+                <div class="icon-item" onclick="setIcon('&#128202;')">&#128202;</div>
+                <div class="icon-item" onclick="setIcon('&#128203;')">&#128203;</div>
+                <div class="icon-item" onclick="setIcon('&#128204;')">&#128204;</div>
+                <div class="icon-item" onclick="setIcon('&#128205;')">&#128205;</div>
+                <div class="icon-item" onclick="setIcon('&#127793;')">&#127793;</div>
+                <div class="icon-item" onclick="setIcon('&#127873;')">&#127873;</div>
+                <div class="icon-item" onclick="setIcon('&#127881;')">&#127881;</div>
+                <div class="icon-item" onclick="setIcon('&#128142;')">&#128142;</div>
+            </div>
+            <div class="icon-picker-actions">
+                <div class="icon-action-btn" onclick="randomIcon()"><i class="fas fa-random"></i> Random</div>
+                <div class="icon-action-btn" onclick="removeIcon()"><i class="fas fa-times"></i> Remove</div>
+            </div>
+        </div>
+
+        <!-- Cover Picker -->
+        <div class="cover-picker" id="coverPicker">
+            <div class="cover-picker-tabs">
+                <div class="cover-picker-tab active" data-tab="gradient">Gradients</div>
+                <div class="cover-picker-tab" data-tab="color">Solid Colors</div>
+                <div class="cover-picker-tab" data-tab="upload">Upload</div>
+            </div>
+            <div class="cover-grid" id="coverGrid">
+                <div class="cover-item cover-gradient-purple" onclick="setCover('gradient-purple')"></div>
+                <div class="cover-item cover-gradient-blue" onclick="setCover('gradient-blue')"></div>
+                <div class="cover-item cover-gradient-green" onclick="setCover('gradient-green')"></div>
+                <div class="cover-item cover-gradient-orange" onclick="setCover('gradient-orange')"></div>
+                <div class="cover-item cover-gradient-red" onclick="setCover('gradient-red')"></div>
+                <div class="cover-item cover-gradient-teal" onclick="setCover('gradient-teal')"></div>
+            </div>
+        </div>
+
+        {% if page.icon %}
+        <div class="page-icon-large" id="pageIcon" onclick="toggleIconPicker(event)">{{ page.icon|safe }}</div>
+        {% endif %}
+
+        <input type="text" class="page-title-input" id="pageTitle" value="{{ page.title }}" placeholder="Untitled" onblur="saveTitle()" onkeydown="handleTitleKeydown(event)">
+    </div>
+
+    <!-- Blocks Container -->
+    <div class="blocks-container" id="blocksContainer">
+        {% for block in page.blocks %}
+        {% include "notes/partials/block.html" %}
+        {% endfor %}
+
+        {% if page.blocks|length == 0 %}
+        <div class="block" data-block-id="new" data-block-type="text">
+            <div class="block-handle">
+                <div class="block-handle-btn add-btn" onclick="addBlockBefore(this)"><i class="fas fa-plus"></i></div>
+                <div class="block-handle-btn drag-handle"><i class="fas fa-grip-vertical"></i></div>
+            </div>
+            <div class="block-content" contenteditable="true" data-placeholder="Type '/' for commands" data-placeholder-focus="Type '/' for commands, or start writing..."></div>
+        </div>
+        {% endif %}
+
+        <div class="add-block-hint" style="padding: 8px 0; color: var(--text-muted); font-size: 14px; opacity: 0; transition: opacity 0.15s;" id="addBlockHint">
+            Press Enter to add a new block, or type / for commands
+        </div>
+    </div>
+
+    {% if database %}
+    <!-- Database View -->
+    <div class="database-view" id="databaseView" data-db-id="{{ database.id }}">
+        <div class="database-header">
+            <div class="view-tabs">
+                <div class="view-tab {% if database.current_view == 'table' %}active{% endif %}" onclick="switchView('table')">
+                    <i class="fas fa-table"></i> Table
+                </div>
+                <div class="view-tab {% if database.current_view == 'board' %}active{% endif %}" onclick="switchView('board')">
+                    <i class="fas fa-columns"></i> Board
+                </div>
+                <div class="view-tab {% if database.current_view == 'calendar' %}active{% endif %}" onclick="switchView('calendar')">
+                    <i class="fas fa-calendar"></i> Calendar
+                </div>
+                <div class="view-tab {% if database.current_view == 'gallery' %}active{% endif %}" onclick="switchView('gallery')">
+                    <i class="fas fa-th-large"></i> Gallery
+                </div>
+            </div>
+            <div class="database-controls">
+                <div class="db-control-btn" onclick="toggleFilter()">
+                    <i class="fas fa-filter"></i> Filter
+                </div>
+                <div class="db-control-btn" onclick="toggleSort()">
+                    <i class="fas fa-sort"></i> Sort
+                </div>
+                <div class="db-control-btn" onclick="addDatabaseRow()">
+                    <i class="fas fa-plus"></i> New
+                </div>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div class="table-view" id="tableView" {% if database.current_view != 'table' %}style="display:none"{% endif %}>
+            <div class="table-wrapper">
+                <table class="notion-table">
+                    <thead>
+                        <tr>
+                            {% for prop in database.properties %}
+                            <th>{{ prop.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        {% for row in database.rows %}
+                        <tr data-row-id="{{ row.id }}">
+                            {% for prop in database.properties %}
+                            <td contenteditable="true" data-prop="{{ prop.id }}" onblur="updateCell('{{ row.id }}', '{{ prop.id }}', this.textContent)">
+                                {% if prop.type == 'title' %}
+                                {{ row.properties.get('title', '') }}
+                                {% elif prop.type == 'select' %}
+                                {% set val = row.properties.get(prop.id) %}
+                                {% for opt in prop.options if opt.id == val %}
+                                <span class="status-tag tag-{{ opt.color }}">{{ opt.name }}</span>
+                                {% endfor %}
+                                {% elif prop.type == 'date' %}
+                                {{ row.properties.get(prop.id, '') }}
+                                {% elif prop.type == 'multi_select' %}
+                                {% for tag_id in row.properties.get(prop.id, []) %}
+                                {% for opt in prop.options if opt.id == tag_id %}
+                                <span class="status-tag tag-{{ opt.color }}" style="margin-right: 4px;">{{ opt.name }}</span>
+                                {% endfor %}
+                                {% endfor %}
+                                {% else %}
+                                {{ row.properties.get(prop.id, '') }}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="table-add-row" onclick="addDatabaseRow()">
+                    <i class="fas fa-plus"></i> New row
+                </div>
+            </div>
+        </div>
+
+        <!-- Board View -->
+        <div class="board-view" id="boardView" {% if database.current_view != 'board' %}style="display:none"{% endif %}>
+            {% set status_prop = namespace(prop=None) %}
+            {% for prop in database.properties if prop.type == 'select' and prop.id == 'status' %}
+            {% set status_prop.prop = prop %}
+            {% endfor %}
+            {% if status_prop.prop %}
+            {% for opt in status_prop.prop.options %}
+            <div class="board-column" data-status="{{ opt.id }}">
+                <div class="board-column-header">
+                    <span class="status-tag tag-{{ opt.color }}">{{ opt.name }}</span>
+                    <span class="board-column-count">{{ database.rows|selectattr('properties.status', 'equalto', opt.id)|list|length }}</span>
+                </div>
+                <div class="board-cards">
+                    {% for row in database.rows if row.properties.get('status') == opt.id %}
+                    <div class="board-card" data-row-id="{{ row.id }}" onclick="openRowDetail('{{ row.id }}')">
+                        <div class="board-card-title">{{ row.properties.get('title', 'Untitled') }}</div>
+                        <div class="board-card-props">
+                            {% if row.properties.get('priority') %}
+                            {% for p in database.properties if p.id == 'priority' %}
+                            {% for po in p.options if po.id == row.properties.priority %}
+                            <span class="card-tag tag-{{ po.color }}">{{ po.name }}</span>
+                            {% endfor %}
+                            {% endfor %}
+                            {% endif %}
+                            {% if row.properties.get('date') %}
+                            <span class="card-tag tag-gray">{{ row.properties.date }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="board-add-card" onclick="addDatabaseRow('{{ opt.id }}')">
+                    <i class="fas fa-plus"></i> Add
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Calendar View -->
+        <div class="calendar-view" id="calendarView" {% if database.current_view != 'calendar' %}style="display:none"{% endif %}>
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <div class="calendar-nav-btn" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></div>
+                    <div class="calendar-title" id="calendarTitle">February 2024</div>
+                    <div class="calendar-nav-btn" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></div>
+                </div>
+                <div class="calendar-nav-btn" onclick="goToToday()">Today</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <div class="calendar-day-header">Sun</div>
+                <div class="calendar-day-header">Mon</div>
+                <div class="calendar-day-header">Tue</div>
+                <div class="calendar-day-header">Wed</div>
+                <div class="calendar-day-header">Thu</div>
+                <div class="calendar-day-header">Fri</div>
+                <div class="calendar-day-header">Sat</div>
+                <!-- Calendar days will be rendered by JS -->
+            </div>
+        </div>
+
+        <!-- Gallery View -->
+        <div class="gallery-view" id="galleryView" {% if database.current_view != 'gallery' %}style="display:none"{% endif %}>
+            {% for row in database.rows %}
+            <div class="gallery-card" onclick="openRowDetail('{{ row.id }}')">
+                <div class="gallery-card-image"></div>
+                <div class="gallery-card-content">
+                    <div class="gallery-card-title">{{ row.properties.get('title', 'Untitled') }}</div>
+                    <div class="gallery-card-props">
+                        {% if row.properties.get('status') %}
+                        {% for p in database.properties if p.id == 'status' %}
+                        {% for po in p.options if po.id == row.properties.status %}
+                        {{ po.name }}
+                        {% endfor %}
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const pageId = '{{ page.id }}';
+const pageData = {{ page|tojson|safe }};
+let slashMenuVisible = false;
+let currentBlock = null;
+let saveTimeout = null;
+let undoStack = [];
+let redoStack = [];
+let isDragging = false;
+let draggedBlock = null;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    initBlocks();
+    initSlashMenu();
+    initDragDrop();
+    initTextSelection();
+    loadComments();
+    loadHistory();
+
+    // Set favorite state
+    {% if page.is_favorite %}
+    document.getElementById('favoriteBtn').querySelector('i').classList.replace('far', 'fas');
+    {% endif %}
+});
+
+// Block initialization
+function initBlocks() {
+    document.querySelectorAll('.block-content[contenteditable="true"]').forEach(initBlockContent);
+}
+
+function initBlockContent(el) {
+    el.addEventListener('input', handleBlockInput);
+    el.addEventListener('keydown', handleBlockKeydown);
+    el.addEventListener('focus', handleBlockFocus);
+    el.addEventListener('blur', handleBlockBlur);
+    el.addEventListener('paste', handlePaste);
+}
+
+function handleBlockInput(e) {
+    const content = e.target.textContent;
+
+    // Check for slash command
+    if (content === '/') {
+        showSlashMenu(e.target);
+    } else if (slashMenuVisible) {
+        const slashIndex = content.lastIndexOf('/');
+        if (slashIndex >= 0) {
+            const query = content.slice(slashIndex + 1);
+            filterSlashMenu(query);
+        } else {
+            hideSlashMenu();
+        }
+    }
+
+    // Check for markdown shortcuts
+    checkMarkdownShortcuts(e.target);
+
+    // Auto-save with debounce
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => saveBlocks(), 1000);
+}
+
+function handleBlockKeydown(e) {
+    const block = e.target.closest('.block');
+
+    // Enter - create new block or select slash menu item
+    if (e.key === 'Enter' && !e.shiftKey) {
+        if (slashMenuVisible) {
+            e.preventDefault();
+            selectSlashMenuItem();
+        } else {
+            e.preventDefault();
+            createNewBlockAfter(block);
+        }
+    }
+
+    // Backspace on empty - delete block
+    if (e.key === 'Backspace' && e.target.textContent === '') {
+        e.preventDefault();
+        deleteBlock(block);
+    }
+
+    // Tab - indent (for lists)
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+            outdentBlock(block);
+        } else {
+            indentBlock(block);
+        }
+    }
+
+    // Arrow navigation for slash menu
+    if (slashMenuVisible) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            navigateSlashMenu(1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigateSlashMenu(-1);
+        } else if (e.key === 'Escape') {
+            hideSlashMenu();
+        }
+    }
+
+    // Formatting shortcuts
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+
+    if (mod && e.key === 'b') {
+        e.preventDefault();
+        document.execCommand('bold');
+    }
+    if (mod && e.key === 'i') {
+        e.preventDefault();
+        document.execCommand('italic');
+    }
+    if (mod && e.key === 'u') {
+        e.preventDefault();
+        document.execCommand('underline');
+    }
+    if (mod && e.key === 'e') {
+        e.preventDefault();
+        wrapSelectionInCode();
+    }
+    if (mod && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        document.execCommand('strikethrough');
+    }
+}
+
+function handleBlockFocus(e) {
+    currentBlock = e.target.closest('.block');
+    document.getElementById('addBlockHint').style.opacity = '1';
+}
+
+function handleBlockBlur(e) {
+    document.getElementById('addBlockHint').style.opacity = '0';
+    setTimeout(() => {
+        if (!document.querySelector('.slash-menu:hover')) {
+            hideSlashMenu();
+        }
+    }, 150);
+}
+
+function handlePaste(e) {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+}
+
+// Markdown shortcuts
+function checkMarkdownShortcuts(el) {
+    const text = el.textContent;
+    const block = el.closest('.block');
+
+    // Heading shortcuts
+    if (text.startsWith('# ')) {
+        el.textContent = text.slice(2);
+        convertBlockType(block, 'heading1');
+    } else if (text.startsWith('## ')) {
+        el.textContent = text.slice(3);
+        convertBlockType(block, 'heading2');
+    } else if (text.startsWith('### ')) {
+        el.textContent = text.slice(4);
+        convertBlockType(block, 'heading3');
+    }
+    // List shortcuts
+    else if (text.startsWith('- ') || text.startsWith('* ')) {
+        el.textContent = text.slice(2);
+        convertBlockType(block, 'bullet');
+    } else if (text.match(/^1\. /)) {
+        el.textContent = text.slice(3);
+        convertBlockType(block, 'numbered');
+    } else if (text.startsWith('[] ') || text.startsWith('[ ] ')) {
+        el.textContent = text.replace(/^\[\]?\s*/, '');
+        convertBlockType(block, 'todo');
+    }
+    // Quote
+    else if (text.startsWith('> ')) {
+        el.textContent = text.slice(2);
+        convertBlockType(block, 'quote');
+    }
+    // Divider
+    else if (text === '---' || text === '***') {
+        el.textContent = '';
+        convertBlockType(block, 'divider');
+        createNewBlockAfter(block);
+    }
+    // Toggle
+    else if (text.startsWith('> ')) {
+        el.textContent = text.slice(2);
+        convertBlockType(block, 'toggle');
+    }
+}
+
+// Slash menu
+function initSlashMenu() {
+    document.querySelectorAll('.slash-menu-item').forEach((item, idx) => {
+        item.addEventListener('click', () => {
+            insertBlockType(item.dataset.type);
+        });
+        item.addEventListener('mouseenter', () => {
+            document.querySelectorAll('.slash-menu-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+        });
+    });
+}
+
+function showSlashMenu(element) {
+    const menu = document.getElementById('slashMenu');
+    const rect = element.getBoundingClientRect();
+
+    menu.style.top = Math.min(rect.bottom + 5, window.innerHeight - 420) + 'px';
+    menu.style.left = Math.max(rect.left, 10) + 'px';
+    menu.classList.add('visible');
+    slashMenuVisible = true;
+
+    // Reset filter
+    document.getElementById('slashSearch').value = '';
+    filterSlashMenu('');
+
+    // Select first item
+    const items = menu.querySelectorAll('.slash-menu-item');
+    items.forEach(i => i.classList.remove('selected'));
+    if (items[0]) items[0].classList.add('selected');
+}
+
+function hideSlashMenu() {
+    document.getElementById('slashMenu').classList.remove('visible');
+    slashMenuVisible = false;
+}
+
+function navigateSlashMenu(dir) {
+    const items = Array.from(document.querySelectorAll('.slash-menu-item:not([style*="display: none"])'));
+    const current = document.querySelector('.slash-menu-item.selected');
+    let idx = items.indexOf(current);
+
+    idx = (idx + dir + items.length) % items.length;
+
+    items.forEach(i => i.classList.remove('selected'));
+    items[idx].classList.add('selected');
+    items[idx].scrollIntoView({ block: 'nearest' });
+}
+
+function selectSlashMenuItem() {
+    const selected = document.querySelector('.slash-menu-item.selected');
+    if (selected) {
+        insertBlockType(selected.dataset.type);
+    }
+}
+
+function insertBlockType(type) {
+    hideSlashMenu();
+    if (!currentBlock) return;
+
+    const contentEl = currentBlock.querySelector('.block-content');
+    // Remove slash command text
+    const text = contentEl.textContent;
+    const slashIdx = text.lastIndexOf('/');
+    if (slashIdx >= 0) {
+        contentEl.textContent = text.slice(0, slashIdx);
+    }
+
+    convertBlockType(currentBlock, type);
+    contentEl.focus();
+    saveBlocks();
+}
+
+function convertBlockType(block, type) {
+    block.dataset.blockType = type;
+    const contentEl = block.querySelector('.block-content');
+
+    // Remove existing wrappers
+    const oldWrapper = contentEl.parentElement;
+    if (oldWrapper !== block && oldWrapper.classList.contains('block-bullet') ||
+        oldWrapper.classList.contains('block-todo') ||
+        oldWrapper.classList.contains('block-quote') ||
+        oldWrapper.classList.contains('block-toggle') ||
+        oldWrapper.classList.contains('block-callout') ||
+        oldWrapper.classList.contains('block-code')) {
+        block.appendChild(contentEl);
+        oldWrapper.remove();
+    }
+
+    // Reset classes
+    contentEl.className = 'block-content';
+
+    // Apply new type
+    switch(type) {
+        case 'heading1':
+            contentEl.classList.add('heading-1');
+            contentEl.dataset.placeholder = 'Heading 1';
+            break;
+        case 'heading2':
+            contentEl.classList.add('heading-2');
+            contentEl.dataset.placeholder = 'Heading 2';
+            break;
+        case 'heading3':
+            contentEl.classList.add('heading-3');
+            contentEl.dataset.placeholder = 'Heading 3';
+            break;
+        case 'bullet':
+            wrapInElement(block, contentEl, 'block-bullet');
+            contentEl.dataset.placeholder = 'List item';
+            break;
+        case 'numbered':
+            wrapInElement(block, contentEl, 'block-numbered');
+            contentEl.dataset.placeholder = 'List item';
+            break;
+        case 'todo':
+            createTodoBlock(block, contentEl);
+            break;
+        case 'toggle':
+            createToggleBlock(block, contentEl);
+            break;
+        case 'quote':
+            wrapInElement(block, contentEl, 'block-quote');
+            contentEl.dataset.placeholder = 'Quote';
+            break;
+        case 'callout':
+            createCalloutBlock(block, contentEl);
+            break;
+        case 'divider':
+            createDividerBlock(block);
+            break;
+        case 'code':
+            createCodeBlock(block, contentEl);
+            break;
+        case 'image':
+            createImageBlock(block);
+            break;
+        case 'table':
+            createTableBlock(block);
+            break;
+        case 'columns':
+            createColumnsBlock(block, 2);
+            break;
+        case 'columns3':
+            createColumnsBlock(block, 3);
+            break;
+        case 'toc':
+            createTocBlock(block);
+            break;
+        default:
+            contentEl.dataset.placeholder = "Type '/' for commands";
+    }
+}
+
+function wrapInElement(block, contentEl, className) {
+    const wrapper = document.createElement('div');
+    wrapper.className = className;
+    block.insertBefore(wrapper, contentEl);
+    wrapper.appendChild(contentEl);
+}
+
+function createTodoBlock(block, contentEl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-todo';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.onchange = function() {
+        wrapper.classList.toggle('checked', this.checked);
+        saveBlocks();
+    };
+
+    block.insertBefore(wrapper, contentEl);
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(contentEl);
+    contentEl.dataset.placeholder = 'To-do';
+}
+
+function createToggleBlock(block, contentEl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-toggle';
+
+    const header = document.createElement('div');
+    header.className = 'toggle-header';
+
+    const icon = document.createElement('div');
+    icon.className = 'toggle-icon';
+    icon.innerHTML = '<i class="fas fa-caret-right"></i>';
+    icon.onclick = function() {
+        this.classList.toggle('expanded');
+        toggleContent.classList.toggle('expanded');
+    };
+
+    const toggleContent = document.createElement('div');
+    toggleContent.className = 'toggle-content';
+    toggleContent.innerHTML = '<div class="block"><div class="block-content" contenteditable="true" data-placeholder="Empty toggle"></div></div>';
+
+    header.appendChild(icon);
+    header.appendChild(contentEl);
+    wrapper.appendChild(header);
+    wrapper.appendChild(toggleContent);
+    block.insertBefore(wrapper, block.querySelector('.block-handle').nextSibling);
+
+    // Init nested block
+    toggleContent.querySelector('.block-content').addEventListener('input', handleBlockInput);
+    toggleContent.querySelector('.block-content').addEventListener('keydown', handleBlockKeydown);
+}
+
+function createCalloutBlock(block, contentEl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-callout callout-blue';
+
+    const icon = document.createElement('div');
+    icon.className = 'callout-icon';
+    icon.innerHTML = '&#128161;';
+    icon.onclick = () => changeCalloutIcon(wrapper);
+
+    const content = document.createElement('div');
+    content.className = 'callout-content';
+    content.appendChild(contentEl);
+
+    wrapper.appendChild(icon);
+    wrapper.appendChild(content);
+    block.insertBefore(wrapper, block.querySelector('.block-handle').nextSibling);
+    contentEl.dataset.placeholder = 'Callout text';
+}
+
+function createCodeBlock(block, contentEl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-code';
+
+    const header = document.createElement('div');
+    header.className = 'code-header';
+    header.innerHTML = `
+        <span class="code-language" onclick="changeLanguage(this)">javascript</span>
+        <div class="code-copy-btn" onclick="copyCode(this)"><i class="far fa-copy"></i> Copy</div>
+    `;
+
+    const codeContent = document.createElement('div');
+    codeContent.className = 'code-content';
+    codeContent.appendChild(contentEl);
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(codeContent);
+    block.insertBefore(wrapper, block.querySelector('.block-handle').nextSibling);
+    contentEl.dataset.placeholder = 'Code';
+}
+
+function createDividerBlock(block) {
+    const handle = block.querySelector('.block-handle');
+    const contentEl = block.querySelector('.block-content');
+    if (contentEl) contentEl.remove();
+
+    const divider = document.createElement('div');
+    divider.className = 'block-divider';
+    handle.after(divider);
+}
+
+function createImageBlock(block) {
+    const handle = block.querySelector('.block-handle');
+    const contentEl = block.querySelector('.block-content');
+    if (contentEl) contentEl.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-image';
+    wrapper.innerHTML = `
+        <div class="image-placeholder" onclick="uploadImage(this)">
+            <i class="far fa-image"></i>
+            <span>Add an image</span>
+        </div>
+    `;
+    handle.after(wrapper);
+}
+
+function createTableBlock(block) {
+    const handle = block.querySelector('.block-handle');
+    const contentEl = block.querySelector('.block-content');
+    if (contentEl) contentEl.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-table';
+    wrapper.innerHTML = `
+        <div class="table-wrapper">
+            <table class="notion-table">
+                <tbody>
+                    <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+                    <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+                    <tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+                </tbody>
+            </table>
+            <div class="table-add-row" onclick="addTableRow(this)"><i class="fas fa-plus"></i> New row</div>
+        </div>
+    `;
+    handle.after(wrapper);
+}
+
+function createColumnsBlock(block, numCols) {
+    const handle = block.querySelector('.block-handle');
+    const contentEl = block.querySelector('.block-content');
+    if (contentEl) contentEl.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-columns';
+
+    for (let i = 0; i < numCols; i++) {
+        if (i > 0) {
+            const resize = document.createElement('div');
+            resize.className = 'column-resize';
+            wrapper.appendChild(resize);
+        }
+        const col = document.createElement('div');
+        col.className = 'column';
+        col.innerHTML = '<div class="block"><div class="block-content" contenteditable="true" data-placeholder="Type here..."></div></div>';
+        wrapper.appendChild(col);
+
+        col.querySelector('.block-content').addEventListener('input', handleBlockInput);
+        col.querySelector('.block-content').addEventListener('keydown', handleBlockKeydown);
+    }
+    handle.after(wrapper);
+}
+
+function createTocBlock(block) {
+    const handle = block.querySelector('.block-handle');
+    const contentEl = block.querySelector('.block-content');
+    if (contentEl) contentEl.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block-toc';
+    updateToc(wrapper);
+    handle.after(wrapper);
+}
+
+function updateToc(wrapper) {
+    const headings = document.querySelectorAll('.heading-1, .heading-2, .heading-3');
+    let html = '';
+    headings.forEach(h => {
+        const level = h.classList.contains('heading-1') ? 'h1' : h.classList.contains('heading-2') ? 'h2' : 'h3';
+        html += `<div class="toc-item toc-${level}" onclick="scrollToHeading(this)">${h.textContent}</div>`;
+    });
+    wrapper.innerHTML = html || '<div style="color: var(--text-muted)">Add headings to create a table of contents</div>';
+}
+
+// Block operations
+function createNewBlockAfter(afterBlock) {
+    const newBlock = document.createElement('div');
+    newBlock.className = 'block';
+    newBlock.dataset.blockId = 'new-' + Date.now();
+    newBlock.dataset.blockType = 'text';
+    newBlock.innerHTML = `
+        <div class="block-handle">
+            <div class="block-handle-btn add-btn" onclick="addBlockBefore(this)"><i class="fas fa-plus"></i></div>
+            <div class="block-handle-btn drag-handle"><i class="fas fa-grip-vertical"></i></div>
+        </div>
+        <div class="block-content" contenteditable="true" data-placeholder="Type '/' for commands"></div>
+    `;
+
+    afterBlock.after(newBlock);
+
+    const content = newBlock.querySelector('.block-content');
+    initBlockContent(content);
+    content.focus();
+
+    saveBlocks();
+}
+
+function deleteBlock(block) {
+    const blocks = document.querySelectorAll('.block');
+    if (blocks.length <= 1) return;
+
+    const idx = Array.from(blocks).indexOf(block);
+    block.remove();
+
+    // Focus previous block
+    const remaining = document.querySelectorAll('.block');
+    const prevIdx = Math.max(0, idx - 1);
+    const prev = remaining[prevIdx];
+    if (prev) {
+        const content = prev.querySelector('.block-content');
+        if (content) {
+            content.focus();
+            // Move cursor to end
+            const range = document.createRange();
+            range.selectNodeContents(content);
+            range.collapse(false);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    }
+
+    saveBlocks();
+}
+
+function addBlockBefore(btn) {
+    const block = btn.closest('.block');
+    const newBlock = document.createElement('div');
+    newBlock.className = 'block';
+    newBlock.dataset.blockId = 'new-' + Date.now();
+    newBlock.dataset.blockType = 'text';
+    newBlock.innerHTML = `
+        <div class="block-handle">
+            <div class="block-handle-btn add-btn" onclick="addBlockBefore(this)"><i class="fas fa-plus"></i></div>
+            <div class="block-handle-btn drag-handle"><i class="fas fa-grip-vertical"></i></div>
+        </div>
+        <div class="block-content" contenteditable="true" data-placeholder="Type '/' for commands"></div>
+    `;
+
+    block.before(newBlock);
+
+    const content = newBlock.querySelector('.block-content');
+    initBlockContent(content);
+    content.focus();
+
+    saveBlocks();
+}
+
+// Drag and drop
+function initDragDrop() {
+    const container = document.getElementById('blocksContainer');
+
+    container.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('block')) {
+            isDragging = true;
+            draggedBlock = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+    });
+
+    container.addEventListener('dragend', (e) => {
+        if (draggedBlock) {
+            draggedBlock.classList.remove('dragging');
+            isDragging = false;
+            draggedBlock = null;
+            document.querySelectorAll('.drop-indicator').forEach(i => i.classList.remove('visible'));
+            saveBlocks();
+        }
+    });
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!isDragging) return;
+
+        const afterElement = getDragAfterElement(container, e.clientY);
+        if (afterElement) {
+            container.insertBefore(draggedBlock, afterElement);
+        } else {
+            container.appendChild(draggedBlock);
+        }
+    });
+}
+
+function getDragAfterElement(container, y) {
+    const blocks = [...container.querySelectorAll('.block:not(.dragging)')];
+
+    return blocks.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// Text selection and formatting toolbar
+function initTextSelection() {
+    document.addEventListener('selectionchange', () => {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0 && selection.toString().length > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+
+            const toolbar = document.getElementById('formattingToolbar');
+            toolbar.style.top = (rect.top - 40 + window.scrollY) + 'px';
+            toolbar.style.left = (rect.left + rect.width / 2 - 150) + 'px';
+            toolbar.classList.add('visible');
+        } else {
+            setTimeout(() => {
+                if (!document.querySelector('.formatting-toolbar:hover')) {
+                    document.getElementById('formattingToolbar').classList.remove('visible');
+                }
+            }, 100);
+        }
+    });
+}
+
+function wrapSelectionInCode() {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const code = document.createElement('code');
+        code.style.cssText = 'background: var(--bg-secondary); padding: 2px 4px; border-radius: 3px; font-family: monospace;';
+        range.surroundContents(code);
+    }
+}
+
+// Save
+function saveTitle() {
+    const title = document.getElementById('pageTitle').value || 'Untitled';
+    fetch(`/notes/api/page/${pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+    });
+
+    // Update sidebar and breadcrumb
+    document.querySelectorAll('.page-item.active .page-title').forEach(el => el.textContent = title);
+    document.querySelectorAll('.breadcrumb-item:last-child span:last-child').forEach(el => el.textContent = title);
+}
+
+function handleTitleKeydown(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const firstBlock = document.querySelector('.block-content[contenteditable="true"]');
+        if (firstBlock) firstBlock.focus();
+    }
+}
+
+function saveBlocks() {
+    const blockElements = document.querySelectorAll('#blocksContainer > .block');
+    const blocks = [];
+
+    blockElements.forEach(block => {
+        const contentEl = block.querySelector('.block-content');
+        const type = block.dataset.blockType || 'text';
+
+        const blockData = {
+            id: block.dataset.blockId,
+            type: type,
+            content: contentEl ? contentEl.innerHTML : ''
+        };
+
+        // Special handling for different block types
+        const todoWrapper = block.querySelector('.block-todo');
+        if (todoWrapper) {
+            const checkbox = todoWrapper.querySelector('input[type="checkbox"]');
+            if (checkbox) blockData.checked = checkbox.checked;
+        }
+
+        const callout = block.querySelector('.block-callout');
+        if (callout) {
+            const icon = callout.querySelector('.callout-icon');
+            if (icon) blockData.icon = icon.innerHTML;
+            const colorClass = [...callout.classList].find(c => c.startsWith('callout-'));
+            if (colorClass) blockData.color = colorClass.replace('callout-', '');
+        }
+
+        const codeBlock = block.querySelector('.block-code');
+        if (codeBlock) {
+            const lang = codeBlock.querySelector('.code-language');
+            if (lang) blockData.language = lang.textContent;
+        }
+
+        blocks.push(blockData);
+    });
+
+    fetch(`/notes/api/page/${pageId}/blocks`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocks })
+    });
+}
+
+// Icons and covers
+function toggleIconPicker(e) {
+    e.stopPropagation();
+    document.getElementById('iconPicker').classList.toggle('visible');
+    document.getElementById('coverPicker').classList.remove('visible');
+}
+
+function toggleCoverPicker(e) {
+    e.stopPropagation();
+    document.getElementById('coverPicker').classList.toggle('visible');
+    document.getElementById('iconPicker').classList.remove('visible');
+}
+
+function setIcon(icon) {
+    fetch(`/notes/api/page/${pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icon })
+    }).then(() => {
+        let iconEl = document.getElementById('pageIcon');
+        if (!iconEl) {
+            iconEl = document.createElement('div');
+            iconEl.id = 'pageIcon';
+            iconEl.className = 'page-icon-large';
+            iconEl.onclick = toggleIconPicker;
+            document.getElementById('pageTitle').before(iconEl);
+        }
+        iconEl.innerHTML = icon;
+        document.querySelectorAll('.page-item.active .page-icon').forEach(el => el.innerHTML = icon);
+        document.getElementById('iconPicker').classList.remove('visible');
+        showToast('Icon updated');
+    });
+}
+
+function removeIcon() {
+    fetch(`/notes/api/page/${pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icon: null })
+    }).then(() => {
+        const iconEl = document.getElementById('pageIcon');
+        if (iconEl) iconEl.remove();
+        document.getElementById('iconPicker').classList.remove('visible');
+    });
+}
+
+function randomIcon() {
+    const icons = ['&#128196;', '&#128221;', '&#128214;', '&#128161;', '&#9989;', '&#128640;', '&#127775;', '&#128293;', '&#128187;', '&#127919;'];
+    setIcon(icons[Math.floor(Math.random() * icons.length)]);
+}
+
+function filterIcons(query) {
+    // Simple filter - would need emoji data for real implementation
+}
+
+function setCover(cover) {
+    fetch(`/notes/api/page/${pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cover })
+    }).then(() => {
+        location.reload();
+    });
+}
+
+function removeCover() {
+    fetch(`/notes/api/page/${pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cover: null })
+    }).then(() => {
+        location.reload();
+    });
+}
+
+function changeCover() {
+    toggleCoverPicker(event);
+}
+
+function repositionCover() {
+    showToast('Drag to reposition cover');
+}
+
+// Favorite
+function toggleFavorite() {
+    const btn = document.getElementById('favoriteBtn');
+    const icon = btn.querySelector('i');
+    const isFav = icon.classList.contains('fas');
+
+    fetch(`/notes/api/page/${pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_favorite: !isFav })
+    }).then(() => {
+        icon.classList.toggle('fas');
+        icon.classList.toggle('far');
+        showToast(isFav ? 'Removed from favorites' : 'Added to favorites');
+    });
+}
+
+// Comments
+function loadComments() {
+    fetch(`/notes/api/page/${pageId}/comments`)
+        .then(r => r.json())
+        .then(data => {
+            const list = document.getElementById('commentsList');
+            if (data.comments && data.comments.length > 0) {
+                list.innerHTML = data.comments.map(c => `
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <div class="comment-avatar">${c.author[0]}</div>
+                            <span class="comment-author">${c.author}</span>
+                            <span class="comment-date">${new Date(c.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div class="comment-text">${c.text}</div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No comments yet</div>';
+            }
+        });
+
+    // Handle comment submission
+    document.getElementById('commentInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const text = e.target.value.trim();
+            if (text) {
+                fetch(`/notes/api/page/${pageId}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                }).then(() => {
+                    e.target.value = '';
+                    loadComments();
+                });
+            }
+        }
+    });
+}
+
+// History
+function loadHistory() {
+    fetch(`/notes/api/page/${pageId}/history`)
+        .then(r => r.json())
+        .then(data => {
+            const list = document.getElementById('historyList');
+            if (data.history && data.history.length > 0) {
+                list.innerHTML = data.history.map(h => `
+                    <div class="history-item">
+                        <div class="history-time">${new Date(h.created_at).toLocaleString()}</div>
+                        <div class="history-author">${h.author} - ${h.action}</div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No history</div>';
+            }
+        });
+}
+
+// Database views
+function switchView(view) {
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.view-tab[onclick="switchView('${view}')"]`).classList.add('active');
+
+    document.getElementById('tableView').style.display = view === 'table' ? '' : 'none';
+    document.getElementById('boardView').style.display = view === 'board' ? '' : 'none';
+    document.getElementById('calendarView').style.display = view === 'calendar' ? '' : 'none';
+    document.getElementById('galleryView').style.display = view === 'gallery' ? '' : 'none';
+
+    if (view === 'calendar') {
+        renderCalendar();
+    }
+
+    const dbId = document.getElementById('databaseView')?.dataset.dbId;
+    if (dbId) {
+        fetch(`/notes/api/database/${dbId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_view: view })
+        });
+    }
+}
+
+function addDatabaseRow(status) {
+    const dbId = document.getElementById('databaseView')?.dataset.dbId;
+    if (!dbId) return;
+
+    const props = { title: 'New item' };
+    if (status) props.status = status;
+
+    fetch(`/notes/api/database/${dbId}/row`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ properties: props })
+    }).then(() => location.reload());
+}
+
+function updateCell(rowId, propId, value) {
+    const dbId = document.getElementById('databaseView')?.dataset.dbId;
+    if (!dbId) return;
+
+    fetch(`/notes/api/database/${dbId}/row/${rowId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ properties: { [propId]: value } })
+    });
+}
+
+// Calendar
+let currentMonth = new Date();
+
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const title = document.getElementById('calendarTitle');
+
+    title.textContent = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    // Clear existing days
+    grid.querySelectorAll('.calendar-day').forEach(d => d.remove());
+
+    const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+    const startPad = firstDay.getDay();
+    const today = new Date();
+
+    // Previous month padding
+    for (let i = 0; i < startPad; i++) {
+        const day = document.createElement('div');
+        day.className = 'calendar-day other-month';
+        grid.appendChild(day);
+    }
+
+    // Days of month
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const day = document.createElement('div');
+        day.className = 'calendar-day';
+        if (d === today.getDate() && currentMonth.getMonth() === today.getMonth() && currentMonth.getFullYear() === today.getFullYear()) {
+            day.classList.add('today');
+        }
+        day.innerHTML = `<div class="calendar-day-number">${d}</div>`;
+        grid.appendChild(day);
+    }
+}
+
+function prevMonth() {
+    currentMonth.setMonth(currentMonth.getMonth() - 1);
+    renderCalendar();
+}
+
+function nextMonth() {
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
+    renderCalendar();
+}
+
+function goToToday() {
+    currentMonth = new Date();
+    renderCalendar();
+}
+
+// Utils
+function copyCode(btn) {
+    const code = btn.closest('.block-code').querySelector('.block-content').textContent;
+    navigator.clipboard.writeText(code);
+    showToast('Copied to clipboard');
+}
+
+function changeLanguage(el) {
+    const lang = prompt('Enter language:', el.textContent);
+    if (lang) {
+        el.textContent = lang;
+        saveBlocks();
+    }
+}
+
+function uploadImage(placeholder) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                placeholder.parentElement.innerHTML = '';
+                placeholder.parentElement.appendChild(img);
+                saveBlocks();
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    input.click();
+}
+
+function addTableRow(btn) {
+    const tbody = btn.closest('.table-wrapper').querySelector('tbody');
+    const cols = tbody.querySelector('tr').children.length;
+    const row = document.createElement('tr');
+    for (let i = 0; i < cols; i++) {
+        row.innerHTML += '<td contenteditable="true"></td>';
+    }
+    tbody.appendChild(row);
+    saveBlocks();
+}
+
+function showPageMenu(e, pageId) {
+    e.stopPropagation();
+    // Would show context menu with options like duplicate, delete, etc.
+}
+
+function createSubPage(parentId) {
+    window.location.href = `/notes/page/new?parent=${parentId}`;
+}
+
+function addComment() {
+    toggleComments();
+    document.getElementById('commentInput').focus();
+}
+
+function changeCalloutIcon(wrapper) {
+    const icons = ['&#128161;', '&#128276;', '&#9888;', '&#10060;', '&#9989;', '&#128214;'];
+    const current = wrapper.querySelector('.callout-icon').innerHTML;
+    const idx = icons.indexOf(current);
+    wrapper.querySelector('.callout-icon').innerHTML = icons[(idx + 1) % icons.length];
+    saveBlocks();
+}
+
+function indentBlock(block) {
+    // Would handle indentation for nested lists
+}
+
+function outdentBlock(block) {
+    // Would handle outdentation
+}
+
+function scrollToHeading(el) {
+    const headings = document.querySelectorAll('.heading-1, .heading-2, .heading-3');
+    const idx = Array.from(document.querySelectorAll('.toc-item')).indexOf(el);
+    if (headings[idx]) {
+        headings[idx].scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function openRowDetail(rowId) {
+    // Would open modal with row details
+    showToast('Row detail view coming soon');
+}
+
+function toggleFilter() {
+    showToast('Filter panel coming soon');
+}
+
+function toggleSort() {
+    showToast('Sort panel coming soon');
+}
+
+// Close pickers on outside click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#iconPicker') && !e.target.closest('#pageIcon') && !e.target.closest('.page-control-btn')) {
+        document.getElementById('iconPicker').classList.remove('visible');
+    }
+    if (!e.target.closest('#coverPicker') && !e.target.closest('.page-control-btn') && !e.target.closest('.cover-btn')) {
+        document.getElementById('coverPicker').classList.remove('visible');
+    }
+});
+
+// Search
+function performSearch(query) {
+    fetch(`/notes/api/search?q=${encodeURIComponent(query)}`)
+        .then(r => r.json())
+        .then(data => {
+            const results = document.getElementById('searchResults');
+            if (data.results && data.results.length > 0) {
+                results.innerHTML = data.results.map(r => `
+                    <div class="search-result-item" onclick="window.location.href='/notes/page/${r.id}'">
+                        <span class="search-result-icon">${r.icon}</span>
+                        <div class="search-result-text">
+                            <div class="search-result-title">${r.title}</div>
+                            ${r.preview ? `<div class="search-result-path">${r.preview}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                results.innerHTML = '<div class="search-empty">No results found</div>';
+            }
+        });
+}
+</script>
+{% endblock %}

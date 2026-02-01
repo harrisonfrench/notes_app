@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - NotesApp</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-light: #eef2ff;
+            --error: #ef4444;
+            --success: #10b981;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --accent-light: #1e1b4b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        .auth-branding {
+            flex: 1;
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-branding::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 100%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+
+        .branding-content {
+            position: relative;
+            z-index: 1;
+            max-width: 500px;
+        }
+
+        .branding-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 48px;
+        }
+
+        .branding-logo-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .branding-logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .branding-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: white;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .branding-subtitle {
+            font-size: 18px;
+            color: rgba(255,255,255,0.85);
+            line-height: 1.6;
+            margin-bottom: 40px;
+        }
+
+        .testimonial {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .testimonial-text {
+            font-size: 16px;
+            color: white;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .testimonial-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .testimonial-info {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .testimonial-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .testimonial-school {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .auth-form-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            background: var(--bg-primary);
+            overflow-y: auto;
+        }
+
+        .auth-form-wrapper {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .auth-form-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-form-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .auth-form-header p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .auth-form-header p a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-form-header p a:hover {
+            text-decoration: underline;
+        }
+
+        .oauth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .oauth-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .oauth-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-muted);
+        }
+
+        .oauth-btn i { font-size: 20px; }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input-wrapper {
+            position: relative;
+        }
+
+        .form-input-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 14px 14px 44px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .password-strength {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .strength-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        .strength-bar.weak { background: #ef4444; }
+        .strength-bar.medium { background: #f59e0b; }
+        .strength-bar.strong { background: #10b981; }
+
+        .password-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .submit-btn {
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        .submit-btn.loading .spinner { display: inline-block; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-message {
+            padding: 12px 16px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            color: #dc2626;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error-message.show { display: flex; }
+
+        [data-theme="dark"] .error-message {
+            background: #450a0a;
+            border-color: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .terms {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 16px;
+        }
+
+        .terms a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .terms a:hover {
+            text-decoration: underline;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            z-index: 100;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-tertiary);
+        }
+
+        @media (max-width: 1024px) {
+            .auth-branding { display: none; }
+        }
+
+        .mobile-logo {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 1024px) {
+            .mobile-logo { display: flex; }
+        }
+
+        .mobile-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+
+        .mobile-logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #10b981, #059669);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <div class="auth-branding">
+        <div class="branding-content">
+            <div class="branding-logo">
+                <div class="branding-logo-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <span class="branding-logo-text">NotesApp</span>
+            </div>
+            <h1 class="branding-title">Start your journey today.</h1>
+            <p class="branding-subtitle">Join thousands of students already using NotesApp to organize their academic life and achieve better results.</p>
+
+            <div class="testimonial">
+                <p class="testimonial-text">"NotesApp completely transformed how I manage my coursework. The AI features are incredible for taking lecture notes, and I love how it automatically parses my syllabi."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">JM</div>
+                    <div class="testimonial-info">
+                        <div class="testimonial-name">Jordan Mitchell</div>
+                        <div class="testimonial-school">Computer Science, Stanford</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-form-container">
+        <div class="auth-form-wrapper">
+            <div class="mobile-logo">
+                <div class="mobile-logo-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <span class="mobile-logo-text">NotesApp</span>
+            </div>
+
+            <div class="auth-form-header">
+                <h1>Create your account</h1>
+                <p>Already have an account? <a href="/auth/login">Sign in</a></p>
+            </div>
+
+            <div class="oauth-buttons">
+                <button class="oauth-btn google" onclick="signupWithGoogle()">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continue with Google
+                </button>
+                <button class="oauth-btn apple" onclick="signupWithApple()">
+                    <i class="fab fa-apple"></i>
+                    Continue with Apple
+                </button>
+            </div>
+
+            <div class="auth-divider">or sign up with email</div>
+
+            <div class="error-message" id="errorMessage">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorText"></span>
+            </div>
+
+            <form class="auth-form" onsubmit="handleSignup(event)">
+                <div class="form-group">
+                    <label for="name">Full name</label>
+                    <div class="form-input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="name" class="form-input" placeholder="John Doe" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <div class="form-input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" class="form-input" placeholder="you@university.edu" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="form-input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" class="form-input" placeholder="Create a strong password" required oninput="checkPasswordStrength()">
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="passwordIcon"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength" id="strengthBars">
+                        <div class="strength-bar" id="bar1"></div>
+                        <div class="strength-bar" id="bar2"></div>
+                        <div class="strength-bar" id="bar3"></div>
+                        <div class="strength-bar" id="bar4"></div>
+                    </div>
+                    <div class="password-hint" id="strengthHint">At least 8 characters</div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="spinner"></span>
+                    <span class="btn-text">Create account</span>
+                </button>
+            </form>
+
+            <p class="terms">
+                By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            document.getElementById('themeIcon').className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        const savedTheme = localStorage.getItem('theme') ||
+            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('passwordIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const bars = ['bar1', 'bar2', 'bar3', 'bar4'];
+            const hint = document.getElementById('strengthHint');
+
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/\d/)) strength++;
+            if (password.match(/[^a-zA-Z\d]/)) strength++;
+
+            bars.forEach((bar, i) => {
+                const el = document.getElementById(bar);
+                el.className = 'strength-bar';
+                if (i < strength) {
+                    if (strength <= 1) el.classList.add('weak');
+                    else if (strength <= 2) el.classList.add('medium');
+                    else el.classList.add('strong');
+                }
+            });
+
+            const hints = [
+                'At least 8 characters',
+                'Add uppercase & lowercase letters',
+                'Add a number',
+                'Add a special character',
+                'Strong password!'
+            ];
+            hint.textContent = hints[Math.min(strength, 4)];
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            document.getElementById('errorText').textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            hideError();
+
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/auth/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    showError(data.error || 'Signup failed');
+                }
+            } catch (err) {
+                showError('Something went wrong. Please try again.');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        async function signupWithGoogle() {
+            const mockGoogleData = {
+                email: 'newuser@gmail.com',
+                name: 'New Google User',
+                picture: 'https://ui-avatars.com/api/?name=New+User&background=4285F4&color=fff'
+            };
+
+            try {
+                const res = await fetch('/auth/api/oauth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ google_data: mockGoogleData })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                }
+            } catch (err) {
+                showError('Google signup failed. Please try again.');
+            }
+        }
+
+        async function signupWithApple() {
+            const mockAppleData = {
+                email: 'newuser@icloud.com',
+                name: 'New Apple User'
+            };
+
+            try {
+                const res = await fetch('/auth/api/oauth/apple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apple_data: mockAppleData })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                }
+            } catch (err) {
+                showError('Apple signup failed. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

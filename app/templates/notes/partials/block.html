@@ -1,0 +1,191 @@
+<div class="block" data-block-id="{{ block.id }}" data-block-type="{{ block.type }}" draggable="true">
+    <div class="block-handle">
+        <div class="block-handle-btn add-btn" onclick="addBlockBefore(this)" title="Add block"><i class="fas fa-plus"></i></div>
+        <div class="block-handle-btn drag-handle" title="Drag to move"><i class="fas fa-grip-vertical"></i></div>
+    </div>
+
+    {% if block.type == 'heading1' %}
+    <div class="block-content heading-1" contenteditable="true" data-placeholder="Heading 1">{{ block.content|safe }}</div>
+
+    {% elif block.type == 'heading2' %}
+    <div class="block-content heading-2" contenteditable="true" data-placeholder="Heading 2">{{ block.content|safe }}</div>
+
+    {% elif block.type == 'heading3' %}
+    <div class="block-content heading-3" contenteditable="true" data-placeholder="Heading 3">{{ block.content|safe }}</div>
+
+    {% elif block.type == 'bullet' %}
+    <div class="block-bullet">
+        <div class="block-content" contenteditable="true" data-placeholder="List item">{{ block.content|safe }}</div>
+    </div>
+
+    {% elif block.type == 'numbered' %}
+    <div class="block-numbered" data-number="{{ block.number|default(loop.index if loop is defined else 1) }}">
+        <div class="block-content" contenteditable="true" data-placeholder="List item">{{ block.content|safe }}</div>
+    </div>
+
+    {% elif block.type == 'todo' %}
+    <div class="block-todo {% if block.checked %}checked{% endif %}">
+        <input type="checkbox" {% if block.checked %}checked{% endif %} onchange="this.parentElement.classList.toggle('checked', this.checked); saveBlocks();">
+        <div class="block-content" contenteditable="true" data-placeholder="To-do">{{ block.content|safe }}</div>
+    </div>
+
+    {% elif block.type == 'toggle' %}
+    <div class="block-toggle">
+        <div class="toggle-header">
+            <div class="toggle-icon" onclick="this.classList.toggle('expanded'); this.closest('.block-toggle').querySelector('.toggle-content').classList.toggle('expanded');">
+                <i class="fas fa-caret-right"></i>
+            </div>
+            <div class="block-content" contenteditable="true" data-placeholder="Toggle">{{ block.content|safe }}</div>
+        </div>
+        <div class="toggle-content">
+            {% if block.children %}
+            {% for child in block.children %}
+            <div class="block" data-block-id="{{ child.id }}" data-block-type="{{ child.type }}">
+                <div class="block-content" contenteditable="true">{{ child.content|safe }}</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="block" data-block-type="text">
+                <div class="block-content" contenteditable="true" data-placeholder="Empty toggle. Click to add content."></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif block.type == 'quote' %}
+    <div class="block-quote">
+        <div class="block-content" contenteditable="true" data-placeholder="Quote">{{ block.content|safe }}</div>
+    </div>
+
+    {% elif block.type == 'callout' %}
+    <div class="block-callout callout-{{ block.color|default('blue') }}">
+        <div class="callout-icon" onclick="changeCalloutIcon(this.parentElement)">{{ block.icon|default('&#128161;')|safe }}</div>
+        <div class="callout-content">
+            <div class="block-content" contenteditable="true" data-placeholder="Callout">{{ block.content|safe }}</div>
+        </div>
+    </div>
+
+    {% elif block.type == 'divider' %}
+    <div class="block-divider"></div>
+
+    {% elif block.type == 'code' %}
+    <div class="block-code">
+        <div class="code-header">
+            <span class="code-language" onclick="changeLanguage(this)">{{ block.language|default('plain text') }}</span>
+            <div class="code-copy-btn" onclick="copyCode(this)"><i class="far fa-copy"></i> Copy</div>
+        </div>
+        <div class="code-content">
+            <div class="block-content" contenteditable="true" data-placeholder="Code" style="white-space: pre;">{{ block.content|safe }}</div>
+        </div>
+    </div>
+
+    {% elif block.type == 'image' %}
+    <div class="block-image">
+        {% if block.url %}
+        <img src="{{ block.url }}" alt="">
+        {% if block.caption %}
+        <div class="image-caption">{{ block.caption }}</div>
+        {% endif %}
+        {% else %}
+        <div class="image-placeholder" onclick="uploadImage(this)">
+            <i class="far fa-image"></i>
+            <span>Add an image</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% elif block.type == 'video' or block.type == 'embed' %}
+    <div class="block-embed">
+        {% if block.url %}
+        <div class="embed-container">
+            <iframe src="{{ block.url }}" allowfullscreen></iframe>
+        </div>
+        {% else %}
+        <div class="embed-placeholder" onclick="promptEmbed(this)">
+            <i class="fas fa-video"></i>
+            <span>Embed a video or content</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% elif block.type == 'bookmark' %}
+    <div class="block-bookmark" onclick="window.open('{{ block.url }}', '_blank')">
+        <div class="bookmark-content">
+            <div class="bookmark-title">{{ block.title|default(block.url) }}</div>
+            {% if block.description %}
+            <div class="bookmark-description">{{ block.description }}</div>
+            {% endif %}
+            <div class="bookmark-url">
+                {% if block.favicon %}<img src="{{ block.favicon }}" alt="">{% endif %}
+                {{ block.url }}
+            </div>
+        </div>
+        {% if block.image %}
+        <div class="bookmark-image" style="background-image: url('{{ block.image }}')"></div>
+        {% endif %}
+    </div>
+
+    {% elif block.type == 'file' %}
+    <div class="block-file" onclick="downloadFile('{{ block.url }}')">
+        <div class="file-icon"><i class="fas fa-file"></i></div>
+        <div class="file-info">
+            <div class="file-name">{{ block.filename|default('File') }}</div>
+            <div class="file-size">{{ block.size|default('') }}</div>
+        </div>
+    </div>
+
+    {% elif block.type == 'table' %}
+    <div class="block-table">
+        <div class="table-wrapper">
+            <table class="notion-table">
+                <tbody>
+                    {% for row in block.rows|default([['', '', ''], ['', '', ''], ['', '', '']]) %}
+                    <tr>
+                        {% for cell in row %}
+                        <td contenteditable="true">{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="table-add-row" onclick="addTableRow(this)"><i class="fas fa-plus"></i> New row</div>
+        </div>
+    </div>
+
+    {% elif block.type == 'toc' %}
+    <div class="block-toc">
+        <div style="color: var(--text-muted)">Table of contents will be generated from headings</div>
+    </div>
+
+    {% elif block.type == 'columns' %}
+    <div class="block-columns">
+        {% for col in block.columns|default([{}, {}]) %}
+        {% if not loop.first %}
+        <div class="column-resize"></div>
+        {% endif %}
+        <div class="column">
+            {% for child in col.blocks|default([]) %}
+            <div class="block" data-block-type="{{ child.type }}">
+                <div class="block-content" contenteditable="true">{{ child.content|safe }}</div>
+            </div>
+            {% else %}
+            <div class="block" data-block-type="text">
+                <div class="block-content" contenteditable="true" data-placeholder="Type here..."></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% elif block.type == 'math' %}
+    <div class="block-math">
+        <div class="block-content" contenteditable="true" data-placeholder="E = mc²">{{ block.content|safe }}</div>
+    </div>
+
+    {% elif block.type == 'database' %}
+    <!-- Database blocks are rendered separately -->
+
+    {% else %}
+    <div class="block-content" contenteditable="true" data-placeholder="Type '/' for commands" data-placeholder-focus="Type '/' for commands, or start writing...">{{ block.content|safe }}</div>
+    {% endif %}
+</div>

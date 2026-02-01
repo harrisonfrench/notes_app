@@ -1,0 +1,1111 @@
+{% extends "base_notion.html" %}
+
+{% block title %}{{ class_data.code }} - My Notes{% endblock %}
+
+{% block sidebar_pages %}
+<div class="sidebar-item" onclick="window.location.href='{{ url_for('notes.calendar_view') }}'">
+    <i class="fas fa-calendar-alt"></i>
+    <span>Calendar</span>
+</div>
+<div class="sidebar-item" onclick="window.location.href='{{ url_for('notes.classes_list') }}'">
+    <i class="fas fa-graduation-cap"></i>
+    <span>Classes</span>
+</div>
+<div class="section-header" style="margin-top: 16px;">
+    <span>Your Classes</span>
+</div>
+{% for cls in classes %}
+<div class="page-item {% if cls.id == class_data.id %}active{% endif %}" onclick="window.location.href='{{ url_for('notes.class_view', class_id=cls.id) }}'">
+    <span class="page-icon">{{ cls.icon }}</span>
+    <span class="page-title">{{ cls.code }}</span>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb-item" onclick="window.location.href='{{ url_for('notes.classes_list') }}'">
+    <i class="fas fa-graduation-cap"></i>
+    <span>Classes</span>
+</div>
+<span class="breadcrumb-separator">/</span>
+<div class="breadcrumb-item">
+    <span>{{ class_data.icon }} {{ class_data.code }}</span>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .class-container {
+        padding: 0;
+        max-width: 100%;
+    }
+
+    .class-hero {
+        padding: 40px;
+        color: white;
+        position: relative;
+    }
+
+    .class-hero-content {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .class-icon {
+        font-size: 60px;
+        margin-bottom: 16px;
+    }
+
+    .class-code {
+        font-size: 14px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .class-name {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .class-term {
+        font-size: 14px;
+        opacity: 0.8;
+    }
+
+    .class-content {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 32px 40px;
+    }
+
+    .class-tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 32px;
+    }
+
+    .class-tab {
+        padding: 12px 20px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.15s;
+    }
+
+    .class-tab:hover {
+        color: var(--text-primary);
+    }
+
+    .class-tab.active {
+        color: var(--text-primary);
+        border-bottom-color: var(--accent-color);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Overview Tab */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .info-card {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .info-card-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .info-card-content {
+        font-size: 15px;
+    }
+
+    .info-card-content strong {
+        display: block;
+        font-size: 16px;
+        margin-bottom: 4px;
+    }
+
+    .info-card-content a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+
+    .info-card-content a:hover {
+        text-decoration: underline;
+    }
+
+    .schedule-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .schedule-day {
+        background: var(--bg-hover);
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    /* Assignments Tab */
+    .assignments-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .assignment-filters {
+        display: flex;
+        gap: 8px;
+    }
+
+    .filter-btn {
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-primary);
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.15s;
+    }
+
+    .filter-btn:hover {
+        background: var(--bg-hover);
+    }
+
+    .filter-btn.active {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+    }
+
+    .assignment-list {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .assignment-item {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: background 0.15s;
+    }
+
+    .assignment-item:last-child {
+        border-bottom: none;
+    }
+
+    .assignment-item:hover {
+        background: var(--bg-hover);
+    }
+
+    .assignment-checkbox {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 2px solid var(--border-color);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.15s;
+    }
+
+    .assignment-checkbox.completed {
+        background: var(--green);
+        border-color: var(--green);
+        color: white;
+    }
+
+    .assignment-info {
+        flex: 1;
+    }
+
+    .assignment-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .assignment-item.completed .assignment-title {
+        text-decoration: line-through;
+        color: var(--text-muted);
+    }
+
+    .assignment-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        gap: 12px;
+    }
+
+    .assignment-type {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    .type-homework { background: var(--blue-bg); color: var(--blue); }
+    .type-quiz { background: var(--orange-bg); color: var(--orange); }
+    .type-exam { background: var(--red-bg); color: var(--red); }
+    .type-project { background: var(--purple-bg); color: var(--purple); }
+    .type-paper { background: var(--green-bg); color: var(--green); }
+
+    .assignment-due {
+        text-align: right;
+        flex-shrink: 0;
+    }
+
+    .due-date {
+        font-weight: 500;
+        font-size: 13px;
+    }
+
+    .due-date.overdue {
+        color: var(--red);
+    }
+
+    .due-date.soon {
+        color: var(--orange);
+    }
+
+    .assignment-points {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    /* Syllabus Tab */
+    .syllabus-upload {
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin-bottom: 24px;
+    }
+
+    .syllabus-upload:hover {
+        border-color: var(--accent-color);
+        background: var(--bg-secondary);
+    }
+
+    .syllabus-upload.dragover {
+        border-color: var(--accent-color);
+        background: var(--blue-bg);
+    }
+
+    .syllabus-upload-icon {
+        font-size: 48px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+    }
+
+    .syllabus-upload-text {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .syllabus-upload-hint {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .syllabus-parsed {
+        background: var(--green-bg);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .syllabus-parsed i {
+        font-size: 24px;
+        color: var(--green);
+    }
+
+    .syllabus-viewer {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 24px;
+        white-space: pre-wrap;
+        font-size: 14px;
+        line-height: 1.6;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    /* Calendar Tab */
+    .class-calendar {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .calendar-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .calendar-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .calendar-nav-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .calendar-title {
+        font-weight: 600;
+        min-width: 150px;
+        text-align: center;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+    }
+
+    .calendar-day-header {
+        padding: 12px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .calendar-day {
+        min-height: 80px;
+        padding: 8px;
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .calendar-day:nth-child(7n) {
+        border-right: none;
+    }
+
+    .calendar-day-number {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .calendar-event {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Resources Tab */
+    .resources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
+    }
+
+    .resource-card {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .resource-card:hover {
+        background: var(--bg-hover);
+    }
+
+    .resource-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+
+    .resource-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .resource-type {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
+    .add-btn {
+        padding: 10px 20px;
+        background: var(--accent-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.15s;
+    }
+
+    .add-btn:hover {
+        background: var(--accent-hover);
+    }
+
+    /* Modal */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+    }
+
+    .modal.visible {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--bg-primary);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 6px;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 14px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .btn-primary {
+        background: var(--accent-color);
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="class-container">
+    <!-- Hero Section -->
+    <div class="class-hero" style="background: {{ class_data.color }}">
+        <div class="class-hero-content">
+            <div class="class-icon">{{ class_data.icon }}</div>
+            <div class="class-code">{{ class_data.code }}</div>
+            <h1 class="class-name">{{ class_data.name }}</h1>
+            <div class="class-term">{{ class_data.term }} • {{ class_data.credits }} credits</div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="class-content">
+        <div class="class-tabs">
+            <div class="class-tab active" data-tab="overview" onclick="switchTab('overview')">
+                <i class="fas fa-home"></i> Overview
+            </div>
+            <div class="class-tab" data-tab="assignments" onclick="switchTab('assignments')">
+                <i class="fas fa-tasks"></i> Assignments
+            </div>
+            <div class="class-tab" data-tab="syllabus" onclick="switchTab('syllabus')">
+                <i class="fas fa-file-alt"></i> Syllabus
+            </div>
+            <div class="class-tab" data-tab="calendar" onclick="switchTab('calendar')">
+                <i class="fas fa-calendar"></i> Calendar
+            </div>
+            <div class="class-tab" data-tab="resources" onclick="switchTab('resources')">
+                <i class="fas fa-folder"></i> Resources
+            </div>
+        </div>
+
+        <!-- Overview Tab -->
+        <div class="tab-content active" id="overviewTab">
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-title">
+                        <i class="fas fa-user"></i> Instructor
+                    </div>
+                    <div class="info-card-content">
+                        <strong>{{ class_data.instructor.name or 'TBA' }}</strong>
+                        {% if class_data.instructor.email %}
+                        <a href="mailto:{{ class_data.instructor.email }}">{{ class_data.instructor.email }}</a><br>
+                        {% endif %}
+                        {% if class_data.instructor.office %}
+                        Office: {{ class_data.instructor.office }}<br>
+                        {% endif %}
+                        {% if class_data.instructor.office_hours %}
+                        Hours: {{ class_data.instructor.office_hours }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-title">
+                        <i class="fas fa-clock"></i> Schedule
+                    </div>
+                    <div class="info-card-content">
+                        {% if class_data.schedule.days %}
+                        {% for day in class_data.schedule.days %}
+                        <div class="schedule-item">
+                            <span class="schedule-day">{{ day|title }}</span>
+                            <span>{{ class_data.schedule.start_time }} - {{ class_data.schedule.end_time }}</span>
+                        </div>
+                        {% endfor %}
+                        <div style="margin-top: 8px; font-size: 13px; color: var(--text-muted);">
+                            <i class="fas fa-map-marker-alt"></i> {{ class_data.schedule.location or 'Location TBA' }}
+                        </div>
+                        {% else %}
+                        <span style="color: var(--text-muted);">Schedule not set</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-title">
+                        <i class="fas fa-tasks"></i> Upcoming
+                    </div>
+                    <div class="info-card-content">
+                        {% set upcoming = class_data.assignments|selectattr('completed', 'equalto', false)|list %}
+                        {% if upcoming %}
+                        {% for assignment in upcoming[:3] %}
+                        <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                            <strong>{{ assignment.title }}</strong>
+                            <div style="font-size: 12px; color: var(--text-muted);">Due: {{ assignment.due_date[:10] if assignment.due_date else 'No date' }}</div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <span style="color: var(--text-muted);">No upcoming assignments</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-title">
+                        <i class="fas fa-info-circle"></i> About
+                    </div>
+                    <div class="info-card-content">
+                        {{ class_data.description or 'No description available' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignments Tab -->
+        <div class="tab-content" id="assignmentsTab">
+            <div class="assignments-header">
+                <div class="assignment-filters">
+                    <button class="filter-btn active" data-filter="all" onclick="filterAssignments('all')">All</button>
+                    <button class="filter-btn" data-filter="pending" onclick="filterAssignments('pending')">Pending</button>
+                    <button class="filter-btn" data-filter="completed" onclick="filterAssignments('completed')">Completed</button>
+                </div>
+                <button class="add-btn" onclick="openAddAssignmentModal()">
+                    <i class="fas fa-plus"></i> Add Assignment
+                </button>
+            </div>
+
+            <div class="assignment-list" id="assignmentList">
+                {% if class_data.assignments %}
+                {% for assignment in class_data.assignments|sort(attribute='due_date') %}
+                <div class="assignment-item {% if assignment.completed %}completed{% endif %}" data-status="{{ 'completed' if assignment.completed else 'pending' }}">
+                    <div class="assignment-checkbox {% if assignment.completed %}completed{% endif %}" onclick="toggleAssignment('{{ assignment.id }}')">
+                        {% if assignment.completed %}<i class="fas fa-check"></i>{% endif %}
+                    </div>
+                    <div class="assignment-info">
+                        <div class="assignment-title">{{ assignment.title }}</div>
+                        <div class="assignment-meta">
+                            <span class="assignment-type type-{{ assignment.type }}">{{ assignment.type }}</span>
+                            <span>{{ assignment.description[:50] if assignment.description else '' }}</span>
+                        </div>
+                    </div>
+                    <div class="assignment-due">
+                        <div class="due-date">{{ assignment.due_date[:10] if assignment.due_date else 'No date' }}</div>
+                        <div class="assignment-points">{{ assignment.points }} pts</div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-tasks" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
+                    <p>No assignments yet</p>
+                    <p style="font-size: 13px;">Upload your syllabus to automatically extract assignments</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Syllabus Tab -->
+        <div class="tab-content" id="syllabusTab">
+            {% if class_data.syllabus_parsed %}
+            <div class="syllabus-parsed">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Syllabus uploaded and parsed</strong>
+                    <div style="font-size: 13px; color: var(--text-secondary);">{{ class_data.assignments|length }} assignments extracted</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="syllabus-upload" id="syllabusUpload" onclick="document.getElementById('syllabusInput').click()">
+                <div class="syllabus-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div class="syllabus-upload-text">{% if class_data.syllabus %}Upload new syllabus{% else %}Upload your syllabus{% endif %}</div>
+                <div class="syllabus-upload-hint">Drop PDF, DOCX, or TXT file here, or click to browse</div>
+                <input type="file" id="syllabusInput" accept=".pdf,.docx,.txt,.md" style="display:none" onchange="handleSyllabusUpload(this)">
+            </div>
+
+            {% if class_data.syllabus %}
+            <h3 style="margin-bottom: 12px;">Syllabus Content</h3>
+            <div class="syllabus-viewer">{{ class_data.syllabus }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Calendar Tab -->
+        <div class="tab-content" id="calendarTab">
+            <div class="class-calendar">
+                <div class="calendar-header">
+                    <div class="calendar-nav">
+                        <button class="calendar-nav-btn" onclick="prevMonth()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="calendar-title" id="calendarTitle">February 2024</span>
+                        <button class="calendar-nav-btn" onclick="nextMonth()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <a href="{{ url_for('notes.calendar_view') }}" style="color: var(--accent-color); font-size: 13px;">View Full Calendar</a>
+                </div>
+                <div class="calendar-grid" id="classCalendarGrid">
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+                    <!-- Days rendered by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Resources Tab -->
+        <div class="tab-content" id="resourcesTab">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                <button class="add-btn" onclick="openAddResourceModal()">
+                    <i class="fas fa-plus"></i> Add Resource
+                </button>
+            </div>
+
+            {% if class_data.resources %}
+            <div class="resources-grid">
+                {% for resource in class_data.resources %}
+                <div class="resource-card" onclick="openResource('{{ resource.url or resource.page_id }}')">
+                    <div class="resource-icon">
+                        {% if resource.type == 'link' %}<i class="fas fa-link"></i>
+                        {% elif resource.type == 'file' %}<i class="fas fa-file"></i>
+                        {% else %}<i class="fas fa-file-alt"></i>{% endif %}
+                    </div>
+                    <div class="resource-title">{{ resource.title }}</div>
+                    <div class="resource-type">{{ resource.type }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <p>No resources yet</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Assignment Modal -->
+<div class="modal" id="addAssignmentModal" onclick="if(event.target===this)closeAddAssignmentModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">Add Assignment</span>
+            <button class="modal-close" onclick="closeAddAssignmentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="addAssignmentForm">
+                <div class="form-group">
+                    <label class="form-label">Title *</label>
+                    <input type="text" class="form-input" id="assignmentTitle" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <select class="form-input" id="assignmentType">
+                            <option value="homework">Homework</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="exam">Exam</option>
+                            <option value="project">Project</option>
+                            <option value="paper">Paper</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Points</label>
+                        <input type="number" class="form-input" id="assignmentPoints" value="100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Due Date</label>
+                    <input type="datetime-local" class="form-input" id="assignmentDue">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" id="assignmentDesc" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddAssignmentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const classId = '{{ class_data.id }}';
+const classData = {{ class_data|tojson|safe }};
+const eventsData = {{ events|tojson|safe }};
+let currentMonth = new Date();
+
+function switchTab(tab) {
+    document.querySelectorAll('.class-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.class-tab[data-tab="${tab}"]`).classList.add('active');
+
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById(`${tab}Tab`).classList.add('active');
+
+    if (tab === 'calendar') {
+        renderClassCalendar();
+    }
+}
+
+function filterAssignments(filter) {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+
+    document.querySelectorAll('.assignment-item').forEach(item => {
+        if (filter === 'all') {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = item.dataset.status === filter ? 'flex' : 'none';
+        }
+    });
+}
+
+function toggleAssignment(assignmentId) {
+    fetch(`/notes/api/classes/${classId}/assignments/${assignmentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true })
+    }).then(() => location.reload());
+}
+
+function openAddAssignmentModal() {
+    document.getElementById('addAssignmentModal').classList.add('visible');
+}
+
+function closeAddAssignmentModal() {
+    document.getElementById('addAssignmentModal').classList.remove('visible');
+}
+
+document.getElementById('addAssignmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const data = {
+        title: document.getElementById('assignmentTitle').value,
+        type: document.getElementById('assignmentType').value,
+        points: parseInt(document.getElementById('assignmentPoints').value),
+        due_date: document.getElementById('assignmentDue').value ? document.getElementById('assignmentDue').value + ':00' : null,
+        description: document.getElementById('assignmentDesc').value
+    };
+
+    fetch(`/notes/api/classes/${classId}/assignments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            showToast('Assignment added!');
+            location.reload();
+        }
+    });
+});
+
+// Syllabus upload
+const syllabusUpload = document.getElementById('syllabusUpload');
+syllabusUpload.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    syllabusUpload.classList.add('dragover');
+});
+
+syllabusUpload.addEventListener('dragleave', () => {
+    syllabusUpload.classList.remove('dragover');
+});
+
+syllabusUpload.addEventListener('drop', (e) => {
+    e.preventDefault();
+    syllabusUpload.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+        processSyllabusFile(e.dataTransfer.files[0]);
+    }
+});
+
+function handleSyllabusUpload(input) {
+    if (input.files && input.files[0]) {
+        processSyllabusFile(input.files[0]);
+    }
+}
+
+function processSyllabusFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    syllabusUpload.innerHTML = `
+        <div class="syllabus-upload-icon"><i class="fas fa-spinner fa-spin"></i></div>
+        <div class="syllabus-upload-text">Processing syllabus...</div>
+        <div class="syllabus-upload-hint">AI is extracting assignments and dates</div>
+    `;
+
+    fetch(`/notes/api/classes/${classId}/syllabus`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            showToast(`Syllabus processed! ${response.assignments_added} assignments added.`);
+            location.reload();
+        } else {
+            showToast('Failed to process syllabus');
+            location.reload();
+        }
+    });
+}
+
+// Calendar
+function renderClassCalendar() {
+    const grid = document.getElementById('classCalendarGrid');
+    while (grid.children.length > 7) {
+        grid.removeChild(grid.lastChild);
+    }
+
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startPad = firstDay.getDay();
+    const today = new Date();
+
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('calendarTitle').textContent = `${months[month]} ${year}`;
+
+    // Previous month padding
+    const prevMonth = new Date(year, month, 0);
+    for (let i = startPad - 1; i >= 0; i--) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        dayDiv.style.background = 'var(--bg-secondary)';
+        dayDiv.innerHTML = `<div class="calendar-day-number" style="color:var(--text-muted)">${prevMonth.getDate() - i}</div>`;
+        grid.appendChild(dayDiv);
+    }
+
+    // Current month
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+        if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            dayDiv.style.background = 'var(--blue-bg)';
+        }
+
+        let dayContent = `<div class="calendar-day-number">${d}</div>`;
+
+        // Add events for this day
+        const dayEvents = eventsData.filter(e => e.start && e.start.startsWith(dateStr));
+        dayEvents.slice(0, 2).forEach(event => {
+            dayContent += `<div class="calendar-event" style="background:{{ class_data.color }};color:white;">${event.title.substring(0, 15)}</div>`;
+        });
+
+        dayDiv.innerHTML = dayContent;
+        grid.appendChild(dayDiv);
+    }
+
+    // Next month padding
+    const remaining = 42 - grid.children.length + 7;
+    for (let i = 1; i <= remaining && grid.children.length < 49; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        dayDiv.style.background = 'var(--bg-secondary)';
+        dayDiv.innerHTML = `<div class="calendar-day-number" style="color:var(--text-muted)">${i}</div>`;
+        grid.appendChild(dayDiv);
+    }
+}
+
+function prevMonth() {
+    currentMonth.setMonth(currentMonth.getMonth() - 1);
+    renderClassCalendar();
+}
+
+function nextMonth() {
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
+    renderClassCalendar();
+}
+
+function openAddResourceModal() {
+    showToast('Resource modal coming soon');
+}
+
+function openResource(url) {
+    if (url.startsWith('http')) {
+        window.open(url, '_blank');
+    } else {
+        window.location.href = `/notes/page/${url}`;
+    }
+}
+
+// Initial render
+if (document.querySelector('.class-tab[data-tab="calendar"]').classList.contains('active')) {
+    renderClassCalendar();
+}
+</script>
+{% endblock %}
