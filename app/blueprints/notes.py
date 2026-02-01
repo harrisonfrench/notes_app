@@ -2,7 +2,23 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 import json
 import io
 import html
+import os
+import tempfile
 from datetime import datetime
+
+# OpenAI for Whisper transcription
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
+def get_openai_client():
+    """Get OpenAI client if API key is available"""
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if api_key and OPENAI_AVAILABLE:
+        return OpenAI(api_key=api_key)
+    return None
 
 notes = Blueprint('notes', __name__)
 
@@ -584,6 +600,151 @@ def reorder_blocks(page_id):
     page['updated_at'] = get_timestamp()
 
     return jsonify({'success': True})
+
+
+# ==================== PAGE TRANSCRIPTION API ====================
+
+@notes.route('/api/page/<page_id>/transcribe', methods=['POST'])
+def transcribe_to_page(page_id):
+    """Transcribe audio and insert directly into a page"""
+    global next_block_id
+
+    page = pages_store.get(page_id)
+    if not page:
+        return jsonify({'error': 'Page not found'}), 404
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    filename = file.filename
+    insert_position = request.form.get('position', 'end')  # 'end' or block_id to insert after
+
+    client = get_openai_client()
+
+    if client:
+        try:
+            # Save file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+                file.save(tmp.name)
+                tmp_path = tmp.name
+
+            # Transcribe with Whisper
+            with open(tmp_path, 'rb') as audio_file:
+                whisper_response = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file
+                )
+
+            os.unlink(tmp_path)
+
+            transcribed_text = whisper_response.text
+
+        except Exception as e:
+            transcribed_text = f"[Transcription failed: {str(e)}. Set OPENAI_API_KEY for real transcription.]"
+    else:
+        transcribed_text = "[Demo mode: Set OPENAI_API_KEY environment variable for real transcription.] This is where your transcribed audio would appear."
+
+    # Create blocks from transcription
+    new_blocks = []
+
+    # Add a callout showing this is a transcription
+    new_blocks.append({
+        'id': f'b{next_block_id}',
+        'type': 'callout',
+        'content': f'🎙️ Transcription from: {filename}',
+        'icon': '🎙️',
+        'color': 'purple'
+    })
+    next_block_id += 1
+
+    # Split text into paragraphs and create text blocks
+    paragraphs = [p.strip() for p in transcribed_text.split('\n') if p.strip()]
+    for para in paragraphs:
+        new_blocks.append({
+            'id': f'b{next_block_id}',
+            'type': 'text',
+            'content': para
+        })
+        next_block_id += 1
+
+    # Insert blocks at the specified position
+    if insert_position == 'end':
+        page['blocks'].extend(new_blocks)
+    else:
+        # Find position of block_id and insert after it
+        insert_idx = len(page['blocks'])
+        for i, block in enumerate(page['blocks']):
+            if block['id'] == insert_position:
+                insert_idx = i + 1
+                break
+        for i, block in enumerate(new_blocks):
+            page['blocks'].insert(insert_idx + i, block)
+
+    page['updated_at'] = get_timestamp()
+
+    return jsonify({
+        'success': True,
+        'blocks_added': len(new_blocks),
+        'transcribed_text': transcribed_text
+    })
+
+
+@notes.route('/api/page/<page_id>/transcribe-url', methods=['POST'])
+def transcribe_url_to_page(page_id):
+    """Transcribe audio from URL and insert into page"""
+    global next_block_id
+    import urllib.request
+
+    page = pages_store.get(page_id)
+    if not page:
+        return jsonify({'error': 'Page not found'}), 404
+
+    data = request.get_json()
+    audio_url = data.get('url')
+
+    if not audio_url:
+        return jsonify({'error': 'No URL provided'}), 400
+
+    client = get_openai_client()
+
+    if client:
+        try:
+            # Download audio file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
+                urllib.request.urlretrieve(audio_url, tmp.name)
+                tmp_path = tmp.name
+
+            # Transcribe with Whisper
+            with open(tmp_path, 'rb') as audio_file:
+                whisper_response = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file
+                )
+
+            os.unlink(tmp_path)
+            transcribed_text = whisper_response.text
+
+        except Exception as e:
+            return jsonify({'error': f'Transcription failed: {str(e)}'}), 500
+    else:
+        transcribed_text = "[Demo mode: Set OPENAI_API_KEY for real transcription.]"
+
+    # Create transcription block
+    new_block = {
+        'id': f'b{next_block_id}',
+        'type': 'text',
+        'content': transcribed_text
+    }
+    next_block_id += 1
+
+    page['blocks'].append(new_block)
+    page['updated_at'] = get_timestamp()
+
+    return jsonify({
+        'success': True,
+        'transcribed_text': transcribed_text
+    })
 
 
 # ==================== COMMENTS API ====================
@@ -1231,7 +1392,7 @@ def ai_chat():
 
 @notes.route('/api/ai/transcribe', methods=['POST'])
 def ai_transcribe():
-    """Transcribe audio/video file to text"""
+    """Transcribe audio/video file to text using OpenAI Whisper"""
     global next_transcript_id
 
     if 'file' not in request.files:
@@ -1240,66 +1401,142 @@ def ai_transcribe():
     file = request.files['file']
     filename = file.filename
 
-    # In a real implementation, this would use Whisper or similar
-    # For demo, we'll simulate transcription
     transcript_id = f"t{next_transcript_id}"
     next_transcript_id += 1
 
-    # Simulate processing time and generate mock transcript
-    duration = "3:45"  # Mock duration
+    # Try to use OpenAI Whisper for real transcription
+    client = get_openai_client()
 
+    if client:
+        try:
+            # Save file temporarily
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+                file.save(tmp.name)
+                tmp_path = tmp.name
+
+            # Transcribe with Whisper
+            with open(tmp_path, 'rb') as audio_file:
+                whisper_response = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="verbose_json",
+                    timestamp_granularities=["segment"]
+                )
+
+            # Clean up temp file
+            os.unlink(tmp_path)
+
+            # Process segments
+            segments = []
+            full_text_parts = []
+
+            if hasattr(whisper_response, 'segments') and whisper_response.segments:
+                for i, seg in enumerate(whisper_response.segments):
+                    start_time = format_seconds(seg.get('start', 0))
+                    end_time = format_seconds(seg.get('end', 0))
+                    text = seg.get('text', '').strip()
+
+                    segments.append({
+                        'start': start_time,
+                        'end': end_time,
+                        'speaker': f'Speaker',
+                        'text': text
+                    })
+                    full_text_parts.append(text)
+            else:
+                # No segments, use full text
+                full_text = whisper_response.text if hasattr(whisper_response, 'text') else str(whisper_response)
+                segments.append({
+                    'start': '0:00',
+                    'end': 'N/A',
+                    'speaker': 'Speaker',
+                    'text': full_text
+                })
+                full_text_parts.append(full_text)
+
+            full_text = '\n\n'.join(full_text_parts)
+            duration = format_seconds(whisper_response.duration) if hasattr(whisper_response, 'duration') else 'N/A'
+
+            # Generate summary and action items using GPT
+            summary, action_items = generate_transcript_insights(client, full_text)
+
+            transcript = {
+                'id': transcript_id,
+                'filename': filename,
+                'duration': duration,
+                'created_at': get_timestamp(),
+                'status': 'completed',
+                'segments': segments,
+                'full_text': full_text,
+                'summary': summary,
+                'action_items': action_items,
+                'speakers': ['Speaker'],
+                'source': 'whisper'
+            }
+
+            transcripts_store[transcript_id] = transcript
+
+            return jsonify({
+                'success': True,
+                'transcript': transcript
+            })
+
+        except Exception as e:
+            # Fall back to demo mode on error
+            print(f"Whisper transcription error: {e}")
+            return create_demo_transcript(transcript_id, filename)
+    else:
+        # No API key, use demo mode
+        return create_demo_transcript(transcript_id, filename)
+
+
+def format_seconds(seconds):
+    """Convert seconds to MM:SS format"""
+    if not seconds:
+        return "0:00"
+    mins = int(seconds // 60)
+    secs = int(seconds % 60)
+    return f"{mins}:{secs:02d}"
+
+
+def generate_transcript_insights(client, text):
+    """Generate summary and action items from transcript text"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You analyze transcripts and extract key information. Respond in JSON format with 'summary' (2-3 sentences) and 'action_items' (array of strings)."},
+                {"role": "user", "content": f"Analyze this transcript and provide a summary and action items:\n\n{text[:4000]}"}
+            ],
+            response_format={"type": "json_object"}
+        )
+        result = json.loads(response.choices[0].message.content)
+        return result.get('summary', ''), result.get('action_items', [])
+    except:
+        return 'Transcript processed successfully.', []
+
+
+def create_demo_transcript(transcript_id, filename):
+    """Create a demo transcript when API is unavailable"""
     transcript = {
         'id': transcript_id,
         'filename': filename,
-        'duration': duration,
+        'duration': '3:45',
         'created_at': get_timestamp(),
         'status': 'completed',
         'segments': [
             {'start': '0:00', 'end': '0:15', 'speaker': 'Speaker 1', 'text': 'Welcome everyone to today\'s meeting. Let\'s get started with our agenda.'},
             {'start': '0:15', 'end': '0:32', 'speaker': 'Speaker 2', 'text': 'Thanks for having us. I\'d like to discuss the project timeline first.'},
-            {'start': '0:32', 'end': '0:58', 'speaker': 'Speaker 1', 'text': 'Great idea. We\'re currently on track for the Q2 deadline. The development team has made significant progress.'},
-            {'start': '0:58', 'end': '1:20', 'speaker': 'Speaker 3', 'text': 'I have some updates on the design side. We\'ve completed the mockups and are ready for review.'},
-            {'start': '1:20', 'end': '1:45', 'speaker': 'Speaker 2', 'text': 'Excellent. Can we schedule a design review meeting for next week?'},
-            {'start': '1:45', 'end': '2:10', 'speaker': 'Speaker 1', 'text': 'Absolutely. Let\'s aim for Tuesday afternoon. I\'ll send out the calendar invite.'},
-            {'start': '2:10', 'end': '2:35', 'speaker': 'Speaker 3', 'text': 'Works for me. Also, I wanted to mention we might need additional resources for the frontend work.'},
-            {'start': '2:35', 'end': '3:00', 'speaker': 'Speaker 1', 'text': 'Let\'s discuss that in detail during the review. Any other items for today?'},
-            {'start': '3:00', 'end': '3:25', 'speaker': 'Speaker 2', 'text': 'I think we\'ve covered everything. Thanks everyone for the productive discussion.'},
-            {'start': '3:25', 'end': '3:45', 'speaker': 'Speaker 1', 'text': 'Great meeting. See you all next week!'},
+            {'start': '0:32', 'end': '0:58', 'speaker': 'Speaker 1', 'text': 'Great idea. We\'re currently on track for the Q2 deadline.'},
         ],
-        'full_text': '''Welcome everyone to today's meeting. Let's get started with our agenda.
-
-Thanks for having us. I'd like to discuss the project timeline first.
-
-Great idea. We're currently on track for the Q2 deadline. The development team has made significant progress.
-
-I have some updates on the design side. We've completed the mockups and are ready for review.
-
-Excellent. Can we schedule a design review meeting for next week?
-
-Absolutely. Let's aim for Tuesday afternoon. I'll send out the calendar invite.
-
-Works for me. Also, I wanted to mention we might need additional resources for the frontend work.
-
-Let's discuss that in detail during the review. Any other items for today?
-
-I think we've covered everything. Thanks everyone for the productive discussion.
-
-Great meeting. See you all next week!''',
-        'summary': 'Team meeting discussing Q2 project timeline, design review scheduling for Tuesday, and potential need for additional frontend resources.',
-        'action_items': [
-            'Schedule design review meeting for Tuesday afternoon',
-            'Send calendar invite for design review',
-            'Discuss additional frontend resources during review'
-        ],
-        'speakers': ['Speaker 1', 'Speaker 2', 'Speaker 3']
+        'full_text': 'Welcome everyone to today\'s meeting. Let\'s get started with our agenda.\n\nThanks for having us. I\'d like to discuss the project timeline first.\n\nGreat idea. We\'re currently on track for the Q2 deadline.',
+        'summary': 'Demo transcript - Add OPENAI_API_KEY environment variable for real transcription.',
+        'action_items': ['Set up OpenAI API key for real transcription'],
+        'speakers': ['Speaker 1', 'Speaker 2'],
+        'source': 'demo'
     }
-
     transcripts_store[transcript_id] = transcript
-
-    return jsonify({
-        'success': True,
-        'transcript': transcript
-    })
+    return jsonify({'success': True, 'transcript': transcript})
 
 
 @notes.route('/api/ai/meeting/start', methods=['POST'])
@@ -2069,6 +2306,112 @@ def ai_generate_quiz():
     })
 
 
+@notes.route('/api/ai/study-guide', methods=['POST'])
+def ai_generate_study_guide():
+    """Generate a comprehensive study guide from content"""
+    data = request.get_json()
+    text = data.get('text', '')
+    page_id = data.get('page_id')
+
+    if page_id and page_id in pages_store:
+        page = pages_store[page_id]
+        text = '\n'.join([b.get('content', '') for b in page.get('blocks', [])])
+
+    client = get_openai_client()
+
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": """You create comprehensive study guides. Return JSON with this format:
+                    {"sections": [{"title": "Key Concepts", "points": ["point 1", "point 2"]}, {"title": "Important Terms", "points": ["term: definition"]}]}
+                    Include sections like: Key Concepts, Important Terms, Main Ideas, Things to Remember, Practice Questions."""},
+                    {"role": "user", "content": f"Create a study guide for:\n\n{text[:6000]}"}
+                ],
+                response_format={"type": "json_object"}
+            )
+            guide = json.loads(response.choices[0].message.content)
+            return jsonify({'success': True, 'guide': guide})
+        except Exception as e:
+            pass
+
+    # Fallback to generated guide
+    guide = generate_study_guide(text)
+    return jsonify({'success': True, 'guide': guide})
+
+
+@notes.route('/api/ai/summarize', methods=['POST'])
+def ai_summarize():
+    """Generate a summary of content"""
+    data = request.get_json()
+    text = data.get('text', '')
+    length = data.get('length', 'brief')
+    page_id = data.get('page_id')
+
+    if page_id and page_id in pages_store:
+        page = pages_store[page_id]
+        text = '\n'.join([b.get('content', '') for b in page.get('blocks', [])])
+
+    client = get_openai_client()
+
+    if client:
+        try:
+            length_instruction = {
+                'brief': 'Write a 2-3 sentence summary.',
+                'detailed': 'Write a comprehensive summary covering all main points.',
+                'bullet': 'Write a bullet-point summary with key takeaways.'
+            }.get(length, 'Write a brief summary.')
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": f"You summarize content clearly and concisely. {length_instruction}"},
+                    {"role": "user", "content": f"Summarize this:\n\n{text[:6000]}"}
+                ]
+            )
+            summary = response.choices[0].message.content
+            return jsonify({'success': True, 'summary': summary})
+        except Exception as e:
+            pass
+
+    # Fallback summary
+    sentences = text.split('.')[:5]
+    summary = '. '.join(s.strip() for s in sentences if s.strip()) + '.'
+    return jsonify({'success': True, 'summary': summary})
+
+
+def generate_study_guide(text):
+    """Generate a basic study guide from text"""
+    words = text.split()
+    sentences = [s.strip() for s in text.split('.') if s.strip()]
+
+    # Extract potential key terms (capitalized words)
+    key_terms = list(set([w for w in words if w[0].isupper() and len(w) > 3]))[:10]
+
+    return {
+        'sections': [
+            {
+                'title': 'Key Concepts',
+                'points': sentences[:5] if sentences else ['No content to analyze']
+            },
+            {
+                'title': 'Important Terms',
+                'points': key_terms[:5] if key_terms else ['Review the material for key terms']
+            },
+            {
+                'title': 'Study Tips',
+                'points': [
+                    'Review this material regularly',
+                    'Try to explain concepts in your own words',
+                    'Create your own practice questions',
+                    'Connect new information to what you already know'
+                ]
+            }
+        ]
+    }
+
+
 # Enhanced AI Helper Functions
 
 def analyze_grammar(text):
@@ -2612,61 +2955,66 @@ def brainstorm_ideas(topic, count, format_type):
 
 
 def generate_flashcards(text, count):
-    """Generate flashcards from content"""
-    return [
-        {'front': 'What is the main objective?', 'back': 'To improve team productivity and collaboration', 'difficulty': 'easy'},
-        {'front': 'When is the project deadline?', 'back': 'Q2 2024', 'difficulty': 'easy'},
-        {'front': 'What methodology is being used?', 'back': 'Agile with two-week sprints', 'difficulty': 'medium'},
-        {'front': 'Who are the key stakeholders?', 'back': 'Product team, Engineering, Design, and Leadership', 'difficulty': 'medium'},
-        {'front': 'What are the success metrics?', 'back': 'User adoption rate, Time to completion, Quality score', 'difficulty': 'hard'},
-        {'front': 'What is the backup plan?', 'back': 'Phased rollout with fallback to previous system', 'difficulty': 'hard'},
-    ][:count]
+    """Generate flashcards from content using AI when available"""
+    client = get_openai_client()
+
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": f"""Generate {count} flashcards from the given content.
+                    Return JSON: {{"flashcards": [{{"front": "question", "back": "answer"}}]}}
+                    Make questions test understanding, not just recall."""},
+                    {"role": "user", "content": f"Create flashcards from:\n\n{text[:4000]}"}
+                ],
+                response_format={"type": "json_object"}
+            )
+            result = json.loads(response.choices[0].message.content)
+            return result.get('flashcards', [])[:count]
+        except Exception as e:
+            print(f"Flashcard generation error: {e}")
+
+    # Fallback flashcards
+    sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 20][:count]
+    return [{'front': f'What do you know about: {s[:50]}...?', 'back': s} for s in sentences]
 
 
 def generate_quiz(text, question_count, difficulty):
-    """Generate quiz questions from content"""
-    questions = [
-        {
-            'question': 'What is the primary goal of the project?',
-            'type': 'multiple_choice',
-            'options': ['Increase revenue', 'Improve productivity', 'Reduce costs', 'Expand market'],
-            'correct': 1,
-            'explanation': 'The project aims to improve team productivity through better tools and processes.',
-            'difficulty': 'easy'
-        },
-        {
-            'question': 'When is the expected completion date?',
-            'type': 'multiple_choice',
-            'options': ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
-            'correct': 1,
-            'explanation': 'The project deadline is set for Q2 2024.',
-            'difficulty': 'easy'
-        },
-        {
-            'question': 'True or False: The team uses waterfall methodology.',
-            'type': 'true_false',
-            'correct': False,
-            'explanation': 'The team uses Agile methodology with two-week sprints.',
-            'difficulty': 'medium'
-        },
-        {
-            'question': 'List three key stakeholders involved in the project.',
-            'type': 'short_answer',
-            'sample_answer': 'Product team, Engineering team, Design team',
-            'keywords': ['product', 'engineering', 'design', 'leadership'],
-            'difficulty': 'medium'
-        },
-        {
-            'question': 'Explain the backup plan if the deadline is missed.',
-            'type': 'essay',
-            'sample_answer': 'A phased rollout approach with the ability to fall back to the previous system.',
-            'rubric': ['Mentions phased approach', 'Includes fallback plan', 'Addresses risk mitigation'],
-            'difficulty': 'hard'
-        }
-    ]
+    """Generate quiz questions from content using AI when available"""
+    client = get_openai_client()
 
-    filtered = [q for q in questions if difficulty == 'all' or q['difficulty'] == difficulty]
-    return filtered[:question_count]
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": f"""Generate {question_count} quiz questions from the content.
+                    Return JSON: {{"questions": [{{"question": "...", "type": "multiple_choice", "options": ["A", "B", "C", "D"], "answer": "correct option text"}}]}}
+                    Mix question types: multiple_choice, true_false. Always include 'answer' field with correct answer text."""},
+                    {"role": "user", "content": f"Create a quiz from:\n\n{text[:4000]}"}
+                ],
+                response_format={"type": "json_object"}
+            )
+            result = json.loads(response.choices[0].message.content)
+            return result.get('questions', [])[:question_count]
+        except Exception as e:
+            print(f"Quiz generation error: {e}")
+
+    # Fallback quiz
+    return [
+        {
+            'question': 'What is the main topic of this content?',
+            'type': 'multiple_choice',
+            'options': ['Topic A', 'Topic B', 'Topic C', 'Topic D'],
+            'answer': 'Topic A'
+        },
+        {
+            'question': 'This content contains important information.',
+            'type': 'true_false',
+            'answer': 'True'
+        }
+    ][:question_count]
 
 
 # ==================== CALENDAR & CLASSES ====================

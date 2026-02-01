@@ -3529,6 +3529,12 @@
                         <i class="far fa-star"></i>
                     </div>
                     <div class="share-btn" onclick="openShare()">Share</div>
+                    <div class="top-bar-btn" onclick="openTranscribeModal()" title="Transcribe Audio" id="transcribeBtn">
+                        <i class="fas fa-microphone" style="color: var(--green);"></i>
+                    </div>
+                    <div class="top-bar-btn" onclick="openStudyTools()" title="Study Tools" id="studyBtn">
+                        <i class="fas fa-graduation-cap" style="color: var(--orange);"></i>
+                    </div>
                     <div class="top-bar-btn" onclick="toggleAI()" title="AI Assistant" id="aiBtn">
                         <i class="fas fa-robot" style="color: var(--purple);"></i>
                     </div>
@@ -4232,6 +4238,360 @@
             </div>
         </div>
     </div>
+
+    <!-- Transcribe to Page Modal -->
+    <div class="modal-overlay" id="transcribeModal" onclick="closeModal('transcribeModal')">
+        <div class="modal" onclick="event.stopPropagation()" style="width: 500px;">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fas fa-microphone" style="color: var(--green);"></i> Transcribe Audio</span>
+                <div class="modal-close" onclick="closeModal('transcribeModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">Upload an audio file to transcribe and insert into your current note.</p>
+                <div class="transcribe-upload-zone" id="pageTranscribeZone" onclick="document.getElementById('pageAudioInput').click()">
+                    <div class="ai-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <div class="ai-upload-text">Drop audio file here or click to upload</div>
+                    <div class="ai-upload-hint">Supports MP3, WAV, M4A, MP4, WEBM</div>
+                    <input type="file" id="pageAudioInput" accept="audio/*,video/*" style="display:none" onchange="handlePageTranscribe(this)">
+                </div>
+                <div id="transcribeStatus" style="display:none; text-align:center; padding: 20px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--accent-color);"></i>
+                    <p style="margin-top: 10px; color: var(--text-secondary);">Transcribing audio...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Study Tools Modal -->
+    <div class="modal-overlay" id="studyToolsModal" onclick="closeModal('studyToolsModal')">
+        <div class="modal" onclick="event.stopPropagation()" style="width: 700px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fas fa-graduation-cap" style="color: var(--orange);"></i> Study Tools</span>
+                <div class="modal-close" onclick="closeModal('studyToolsModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="study-tools-tabs">
+                <button class="study-tab active" data-tab="flashcards" onclick="switchStudyTab('flashcards')">
+                    <i class="fas fa-clone"></i> Flashcards
+                </button>
+                <button class="study-tab" data-tab="quiz" onclick="switchStudyTab('quiz')">
+                    <i class="fas fa-question-circle"></i> Quiz
+                </button>
+                <button class="study-tab" data-tab="guide" onclick="switchStudyTab('guide')">
+                    <i class="fas fa-book"></i> Study Guide
+                </button>
+                <button class="study-tab" data-tab="summary" onclick="switchStudyTab('summary')">
+                    <i class="fas fa-compress-alt"></i> Summary
+                </button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto;">
+                <!-- Flashcards Tab -->
+                <div class="study-content active" id="flashcardsContent">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">Generate flashcards from your notes for effective studying.</p>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <input type="number" id="flashcardCount" value="10" min="5" max="30" style="width: 80px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                        <button class="btn btn-primary" onclick="generateFlashcards()" id="genFlashcardsBtn">
+                            <i class="fas fa-magic"></i> Generate Flashcards
+                        </button>
+                    </div>
+                    <div id="flashcardsContainer">
+                        <div class="flashcard-placeholder">
+                            <i class="fas fa-clone" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                            <p>Click "Generate Flashcards" to create study cards from this page</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Tab -->
+                <div class="study-content" id="quizContent">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">Test your knowledge with an AI-generated quiz.</p>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <select id="quizType" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="true_false">True/False</option>
+                            <option value="short_answer">Short Answer</option>
+                            <option value="mixed">Mixed</option>
+                        </select>
+                        <input type="number" id="quizCount" value="5" min="3" max="20" style="width: 80px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                        <button class="btn btn-primary" onclick="generateQuiz()" id="genQuizBtn">
+                            <i class="fas fa-magic"></i> Generate Quiz
+                        </button>
+                    </div>
+                    <div id="quizContainer">
+                        <div class="quiz-placeholder">
+                            <i class="fas fa-question-circle" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                            <p>Click "Generate Quiz" to create a quiz from this page</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Study Guide Tab -->
+                <div class="study-content" id="guideContent">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">Generate a comprehensive study guide from your notes.</p>
+                    <button class="btn btn-primary" onclick="generateStudyGuide()" id="genGuideBtn" style="margin-bottom: 20px;">
+                        <i class="fas fa-magic"></i> Generate Study Guide
+                    </button>
+                    <div id="guideContainer">
+                        <div class="guide-placeholder">
+                            <i class="fas fa-book" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                            <p>Click "Generate Study Guide" to create a study guide from this page</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Tab -->
+                <div class="study-content" id="summaryContent">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">Get a concise summary of your notes.</p>
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <select id="summaryLength" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                            <option value="brief">Brief (1-2 paragraphs)</option>
+                            <option value="detailed">Detailed (full summary)</option>
+                            <option value="bullet">Bullet Points</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="generateSummary()" id="genSummaryBtn">
+                            <i class="fas fa-magic"></i> Generate Summary
+                        </button>
+                    </div>
+                    <div id="summaryContainer">
+                        <div class="summary-placeholder">
+                            <i class="fas fa-compress-alt" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                            <p>Click "Generate Summary" to summarize this page</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .study-tools-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .study-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .study-tab:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .study-tab.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .study-content {
+            display: none;
+        }
+
+        .study-content.active {
+            display: block;
+        }
+
+        .flashcard-placeholder, .quiz-placeholder, .guide-placeholder, .summary-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        /* Flashcard styles */
+        .flashcard {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .flashcard:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+
+        .flashcard.flipped .flashcard-front {
+            display: none;
+        }
+
+        .flashcard.flipped .flashcard-back {
+            display: block;
+        }
+
+        .flashcard-front {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .flashcard-back {
+            display: none;
+            color: var(--text-secondary);
+        }
+
+        .flashcard-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+        }
+
+        /* Quiz styles */
+        .quiz-question {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .quiz-question-text {
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .quiz-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--accent-color);
+        }
+
+        .quiz-option.selected {
+            border-color: var(--accent-color);
+            background: var(--bg-selection);
+        }
+
+        .quiz-option.correct {
+            border-color: var(--green);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .quiz-option.incorrect {
+            border-color: var(--red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .quiz-score {
+            text-align: center;
+            padding: 24px;
+            background: linear-gradient(135deg, var(--purple), var(--accent-color));
+            border-radius: 12px;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .quiz-score h3 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* Study guide styles */
+        .study-guide {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .study-guide h3 {
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .study-guide-section {
+            margin-bottom: 24px;
+        }
+
+        .study-guide-section h4 {
+            color: var(--accent-color);
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .study-guide-section ul {
+            padding-left: 20px;
+            color: var(--text-secondary);
+        }
+
+        .study-guide-section li {
+            margin-bottom: 6px;
+        }
+
+        /* Summary styles */
+        .summary-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .transcribe-upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .transcribe-upload-zone:hover {
+            border-color: var(--accent-color);
+            background: var(--bg-hover);
+        }
+
+        .transcribe-upload-zone .ai-upload-icon {
+            font-size: 48px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .transcribe-upload-zone .ai-upload-text {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .transcribe-upload-zone .ai-upload-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
@@ -5276,6 +5636,351 @@
 
         function commentOnSelection() {
             toggleComments();
+        }
+
+        // ==================== TRANSCRIPTION FUNCTIONS ====================
+
+        function openTranscribeModal() {
+            document.getElementById('transcribeModal').style.display = 'flex';
+            document.getElementById('transcribeStatus').style.display = 'none';
+            document.getElementById('pageTranscribeZone').style.display = 'block';
+        }
+
+        function handlePageTranscribe(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            const pageId = getPageId();
+
+            if (!pageId) {
+                showToast('Please open a page first');
+                return;
+            }
+
+            document.getElementById('pageTranscribeZone').style.display = 'none';
+            document.getElementById('transcribeStatus').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch(`/notes/api/page/${pageId}/transcribe`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                closeModal('transcribeModal');
+                if (data.success) {
+                    showToast('Transcription added to page!');
+                    location.reload();
+                } else {
+                    showToast('Transcription failed: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                closeModal('transcribeModal');
+                showToast('Transcription failed');
+            });
+        }
+
+        function getPageId() {
+            const path = window.location.pathname;
+            const match = path.match(/\/notes\/page\/(\d+)/);
+            return match ? match[1] : null;
+        }
+
+        // ==================== STUDY TOOLS FUNCTIONS ====================
+
+        function openStudyTools() {
+            document.getElementById('studyToolsModal').style.display = 'flex';
+        }
+
+        function switchStudyTab(tabName) {
+            document.querySelectorAll('.study-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.study-content').forEach(content => {
+                content.classList.toggle('active', content.id === tabName + 'Content');
+            });
+        }
+
+        function getPageContent() {
+            // Get all text content from the page
+            const blocks = document.querySelectorAll('.block-content');
+            let content = '';
+            blocks.forEach(block => {
+                content += block.innerText + '\n';
+            });
+            return content || document.querySelector('.page-content')?.innerText || '';
+        }
+
+        function generateFlashcards() {
+            const count = document.getElementById('flashcardCount').value;
+            const btn = document.getElementById('genFlashcardsBtn');
+            const container = document.getElementById('flashcardsContainer');
+            const content = getPageContent();
+
+            if (!content.trim()) {
+                showToast('No content found on this page');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            fetch('/notes/api/ai/flashcards', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: content, count: parseInt(count) })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Flashcards';
+
+                if (data.flashcards && data.flashcards.length > 0) {
+                    container.innerHTML = data.flashcards.map((card, i) => `
+                        <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                            <div class="flashcard-front">
+                                <strong>Q${i + 1}:</strong> ${card.front || card.question}
+                            </div>
+                            <div class="flashcard-back">
+                                <strong>Answer:</strong> ${card.back || card.answer}
+                            </div>
+                            <div class="flashcard-hint">Click to flip</div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p style="text-align:center; color: var(--text-muted);">Could not generate flashcards. Try adding more content.</p>';
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Flashcards';
+                showToast('Failed to generate flashcards');
+            });
+        }
+
+        let currentQuizData = null;
+
+        function generateQuiz() {
+            const type = document.getElementById('quizType').value;
+            const count = document.getElementById('quizCount').value;
+            const btn = document.getElementById('genQuizBtn');
+            const container = document.getElementById('quizContainer');
+            const content = getPageContent();
+
+            if (!content.trim()) {
+                showToast('No content found on this page');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            fetch('/notes/api/ai/quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: content, type: type, count: parseInt(count) })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Quiz';
+
+                if (data.questions && data.questions.length > 0) {
+                    currentQuizData = data.questions;
+                    renderQuiz(data.questions);
+                } else {
+                    container.innerHTML = '<p style="text-align:center; color: var(--text-muted);">Could not generate quiz. Try adding more content.</p>';
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Quiz';
+                showToast('Failed to generate quiz');
+            });
+        }
+
+        function renderQuiz(questions) {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = questions.map((q, i) => {
+                if (q.type === 'multiple_choice' || q.options) {
+                    return `
+                        <div class="quiz-question" data-answer="${q.answer}" data-index="${i}">
+                            <div class="quiz-question-text">${i + 1}. ${q.question}</div>
+                            ${(q.options || []).map((opt, j) => `
+                                <div class="quiz-option" onclick="selectQuizOption(this, ${i}, '${opt.replace(/'/g, "\\'")}')">
+                                    <span>${String.fromCharCode(65 + j)}.</span> ${opt}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (q.type === 'true_false') {
+                    return `
+                        <div class="quiz-question" data-answer="${q.answer}" data-index="${i}">
+                            <div class="quiz-question-text">${i + 1}. ${q.question}</div>
+                            <div class="quiz-option" onclick="selectQuizOption(this, ${i}, 'True')">True</div>
+                            <div class="quiz-option" onclick="selectQuizOption(this, ${i}, 'False')">False</div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="quiz-question" data-answer="${q.answer}" data-index="${i}">
+                            <div class="quiz-question-text">${i + 1}. ${q.question}</div>
+                            <input type="text" class="short-answer-input" placeholder="Your answer..." style="width:100%; padding:12px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-primary); color:var(--text-primary);">
+                            <button onclick="checkShortAnswer(this, ${i})" style="margin-top:8px; padding:8px 16px; background:var(--accent-color); color:white; border:none; border-radius:6px; cursor:pointer;">Check Answer</button>
+                        </div>
+                    `;
+                }
+            }).join('') + '<button onclick="checkAllQuizAnswers()" class="btn btn-primary" style="width:100%; margin-top:20px;">Check All Answers</button>';
+        }
+
+        function selectQuizOption(el, questionIdx, answer) {
+            const question = el.closest('.quiz-question');
+            question.querySelectorAll('.quiz-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            el.dataset.selected = answer;
+        }
+
+        function checkAllQuizAnswers() {
+            let correct = 0;
+            let total = 0;
+
+            document.querySelectorAll('.quiz-question').forEach(q => {
+                const correctAnswer = q.dataset.answer;
+                const selectedOpt = q.querySelector('.quiz-option.selected');
+
+                if (selectedOpt) {
+                    total++;
+                    if (selectedOpt.dataset.selected === correctAnswer ||
+                        selectedOpt.innerText.includes(correctAnswer)) {
+                        selectedOpt.classList.add('correct');
+                        correct++;
+                    } else {
+                        selectedOpt.classList.add('incorrect');
+                        // Show correct answer
+                        q.querySelectorAll('.quiz-option').forEach(opt => {
+                            if (opt.innerText.includes(correctAnswer)) {
+                                opt.classList.add('correct');
+                            }
+                        });
+                    }
+                }
+            });
+
+            const container = document.getElementById('quizContainer');
+            container.innerHTML += `
+                <div class="quiz-score">
+                    <h3>${correct}/${total}</h3>
+                    <p>${Math.round((correct/total) * 100)}% Correct</p>
+                </div>
+            `;
+        }
+
+        function generateStudyGuide() {
+            const btn = document.getElementById('genGuideBtn');
+            const container = document.getElementById('guideContainer');
+            const content = getPageContent();
+
+            if (!content.trim()) {
+                showToast('No content found on this page');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            fetch('/notes/api/ai/study-guide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: content })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Study Guide';
+
+                if (data.guide) {
+                    container.innerHTML = `
+                        <div class="study-guide">
+                            ${data.guide.sections ? data.guide.sections.map(section => `
+                                <div class="study-guide-section">
+                                    <h4>${section.title}</h4>
+                                    <ul>
+                                        ${section.points.map(p => `<li>${p}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `).join('') : `<div style="white-space: pre-wrap;">${data.guide}</div>`}
+                        </div>
+                        <button onclick="insertStudyGuideToPage()" class="btn btn-primary" style="margin-top:16px;">
+                            <i class="fas fa-plus"></i> Insert into Page
+                        </button>
+                    `;
+                } else {
+                    container.innerHTML = '<p style="text-align:center; color: var(--text-muted);">Could not generate study guide.</p>';
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Study Guide';
+                showToast('Failed to generate study guide');
+            });
+        }
+
+        function generateSummary() {
+            const length = document.getElementById('summaryLength').value;
+            const btn = document.getElementById('genSummaryBtn');
+            const container = document.getElementById('summaryContainer');
+            const content = getPageContent();
+
+            if (!content.trim()) {
+                showToast('No content found on this page');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            fetch('/notes/api/ai/summarize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: content, length: length })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+
+                if (data.summary) {
+                    container.innerHTML = `
+                        <div class="summary-box">
+                            ${data.summary}
+                        </div>
+                        <div style="margin-top:12px; display:flex; gap:8px;">
+                            <button onclick="copySummary()" class="btn btn-secondary">
+                                <i class="far fa-copy"></i> Copy
+                            </button>
+                            <button onclick="insertSummaryToPage()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Insert into Page
+                            </button>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+                showToast('Failed to generate summary');
+            });
+        }
+
+        function copySummary() {
+            const summary = document.querySelector('.summary-box')?.innerText;
+            if (summary) {
+                navigator.clipboard.writeText(summary);
+                showToast('Summary copied!');
+            }
         }
     </script>
     {% block scripts %}{% endblock %}
