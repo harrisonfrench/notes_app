@@ -785,6 +785,53 @@
             background-color: var(--bg-hover);
         }
 
+        .page-menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+            min-width: 200px;
+            padding: 6px;
+            z-index: 1000;
+        }
+
+        .page-menu-dropdown.visible {
+            display: block;
+        }
+
+        .page-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-primary);
+            transition: background 0.15s;
+        }
+
+        .page-menu-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .page-menu-item i {
+            width: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .page-menu-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 6px 0;
+        }
+
         .top-bar-btn.active {
             color: var(--accent-color);
         }
@@ -3465,12 +3512,7 @@
             <!-- Pages -->
             <div class="pages-section">
                 <div class="section-header">
-                    <span>Private</span>
-                    <div class="section-header-actions">
-                        <div class="section-action-btn" onclick="createNewPage()" title="Add page">
-                            <i class="fas fa-plus"></i>
-                        </div>
-                    </div>
+                    <span>Pages</span>
                 </div>
 
                 <div class="page-tree" id="pagesList">
@@ -3478,21 +3520,10 @@
                 </div>
             </div>
 
-            <div class="new-page-area">
-                <div class="new-page-btn" onclick="createNewPage()">
-                    <i class="fas fa-plus"></i>
-                    <span>Add a page</span>
-                </div>
-            </div>
-
             <div class="sidebar-footer">
                 <a href="/auth/profile" class="sidebar-item" style="text-decoration: none; color: inherit;">
                     <i class="fas fa-user-circle"></i>
                     <span>Profile</span>
-                </a>
-                <a href="/auth/settings" class="sidebar-item" style="text-decoration: none; color: inherit;">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
                 </a>
                 <div class="sidebar-item" onclick="openTrash()">
                     <i class="fas fa-trash"></i>
@@ -3529,20 +3560,39 @@
                         <i class="far fa-star"></i>
                     </div>
                     <div class="share-btn" onclick="openShare()">Share</div>
-                    <div class="top-bar-btn" onclick="openTranscribeModal()" title="Transcribe Audio" id="transcribeBtn">
-                        <i class="fas fa-microphone" style="color: var(--green);"></i>
+                    <div class="top-bar-btn" onclick="toggleAI()" title="AI Tools" id="aiBtn">
+                        <i class="fas fa-wand-magic-sparkles" style="color: var(--purple);"></i>
                     </div>
-                    <div class="top-bar-btn" onclick="openStudyTools()" title="Study Tools" id="studyBtn">
-                        <i class="fas fa-graduation-cap" style="color: var(--orange);"></i>
-                    </div>
-                    <div class="top-bar-btn" onclick="toggleAI()" title="AI Assistant" id="aiBtn">
-                        <i class="fas fa-robot" style="color: var(--purple);"></i>
-                    </div>
-                    <div class="top-bar-btn" onclick="openPageMenu(event)" title="More options">
+                    <div class="top-bar-btn" onclick="togglePageMenu(event)" title="More options" style="position: relative;">
                         <i class="fas fa-ellipsis-h"></i>
-                    </div>
-                    <div class="top-bar-btn" onclick="toggleTheme()" title="Toggle dark mode">
-                        <i class="fas fa-moon" id="themeIcon"></i>
+                        <div class="page-menu-dropdown" id="pageMenuDropdown" onclick="event.stopPropagation()">
+                            <div class="page-menu-item" onclick="openStudyTools(); closePageMenu();">
+                                <i class="fas fa-graduation-cap" style="color: var(--orange);"></i>
+                                <span>Study Tools</span>
+                            </div>
+                            <div class="page-menu-item" onclick="openTranscribeModal(); closePageMenu();">
+                                <i class="fas fa-microphone" style="color: var(--green);"></i>
+                                <span>Transcribe Audio</span>
+                            </div>
+                            <div class="page-menu-divider"></div>
+                            <div class="page-menu-item" onclick="toggleTheme(); closePageMenu();">
+                                <i class="fas fa-moon" id="themeIconMenu"></i>
+                                <span id="themeTextMenu">Dark Mode</span>
+                            </div>
+                            <div class="page-menu-item" onclick="exportPage(); closePageMenu();">
+                                <i class="fas fa-download"></i>
+                                <span>Export</span>
+                            </div>
+                            <div class="page-menu-item" onclick="openTemplates(); closePageMenu();">
+                                <i class="fas fa-file-alt"></i>
+                                <span>Templates</span>
+                            </div>
+                            <div class="page-menu-divider"></div>
+                            <div class="page-menu-item" onclick="openShortcuts(); closePageMenu();">
+                                <i class="fas fa-keyboard"></i>
+                                <span>Keyboard Shortcuts</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4666,7 +4716,19 @@
 
         // Modals
         function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('visible');
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('visible');
+                modal.style.display = 'none';
+            }
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('visible');
+                modal.style.display = 'flex';
+            }
         }
 
         function openShare() {
@@ -5610,11 +5672,182 @@
                 const select = document.getElementById('fontSizeSelect');
                 if (select) select.value = fontSize;
             }
+
+            // Setup auto-formatting for blocks
+            setupBlockAutoFormatting();
         });
 
+        // Auto-formatting for blocks (like Apple Notes)
+        function setupBlockAutoFormatting() {
+            document.addEventListener('input', function(e) {
+                const target = e.target;
+                if (!target.classList.contains('block-content') || !target.isContentEditable) return;
+
+                const text = target.innerText;
+                const block = target.closest('.block');
+                if (!block) return;
+
+                // Auto-capitalize first letter of sentences
+                if (text.length === 1 && /[a-z]/.test(text)) {
+                    const selection = window.getSelection();
+                    const range = selection.getRangeAt(0);
+                    target.innerText = text.toUpperCase();
+                    range.setStart(target.firstChild, 1);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+
+                // Check for markdown-style shortcuts at start of text
+                checkMarkdownShortcuts(target, block, text);
+            });
+
+            // Handle Tab key for indentation
+            document.addEventListener('keydown', function(e) {
+                const target = e.target;
+                if (!target.classList.contains('block-content') || !target.isContentEditable) return;
+
+                // Tab key - indent or create sub-bullet
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        // Shift+Tab - outdent
+                        document.execCommand('outdent');
+                    } else {
+                        // Tab - indent
+                        document.execCommand('indent');
+                    }
+                }
+
+                // Enter key - continue list formatting
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    const block = target.closest('.block');
+                    const blockType = block?.dataset.type;
+
+                    // If in a bullet or numbered list, continue the list
+                    if (blockType === 'bullet' || blockType === 'numbered' || blockType === 'todo') {
+                        // Let default behavior happen, then create new block of same type
+                    }
+                }
+
+                // Backspace at start of formatted block - convert to text
+                if (e.key === 'Backspace') {
+                    const selection = window.getSelection();
+                    if (selection.anchorOffset === 0 && target.innerText.trim() === '') {
+                        const block = target.closest('.block');
+                        const blockType = block?.dataset.type;
+                        if (blockType && blockType !== 'text') {
+                            e.preventDefault();
+                            // Convert to text block or delete
+                            convertBlockToText(block);
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkMarkdownShortcuts(target, block, text) {
+            const blockId = block.dataset.blockId;
+            const pageId = getPageId();
+            if (!pageId || !blockId) return;
+
+            // Check for various markdown patterns
+            const patterns = [
+                { regex: /^\* $/, type: 'bullet', removeChars: 2 },
+                { regex: /^- $/, type: 'bullet', removeChars: 2 },
+                { regex: /^• $/, type: 'bullet', removeChars: 2 },
+                { regex: /^1\. $/, type: 'numbered', removeChars: 3 },
+                { regex: /^\[\] $/, type: 'todo', removeChars: 3 },
+                { regex: /^\[ \] $/, type: 'todo', removeChars: 4 },
+                { regex: /^- \[\] $/, type: 'todo', removeChars: 5 },
+                { regex: /^# $/, type: 'heading1', removeChars: 2 },
+                { regex: /^## $/, type: 'heading2', removeChars: 3 },
+                { regex: /^### $/, type: 'heading3', removeChars: 4 },
+                { regex: /^> $/, type: 'quote', removeChars: 2 },
+                { regex: /^--- ?$/, type: 'divider', removeChars: 0 },
+                { regex: /^```$/, type: 'code', removeChars: 3 },
+            ];
+
+            for (const pattern of patterns) {
+                if (pattern.regex.test(text)) {
+                    // Clear the markdown characters
+                    target.innerText = text.slice(pattern.removeChars);
+
+                    // Convert block type
+                    convertBlockType(blockId, pattern.type, pageId);
+                    break;
+                }
+            }
+        }
+
+        function convertBlockType(blockId, newType, pageId) {
+            fetch(`/notes/api/page/${pageId}/block/${blockId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: newType })
+            }).then(() => {
+                // Reload the page to show new block type
+                // In a more sophisticated app, we'd update the DOM directly
+                location.reload();
+            });
+        }
+
+        function convertBlockToText(block) {
+            const blockId = block.dataset.blockId;
+            const pageId = getPageId();
+            if (!pageId || !blockId) return;
+
+            fetch(`/notes/api/page/${pageId}/block/${blockId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'text', content: '' })
+            }).then(() => {
+                location.reload();
+            });
+        }
+
         // Page menu
-        function openPageMenu(event) {
-            // Implementation for page options menu
+        function togglePageMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('pageMenuDropdown');
+            dropdown.classList.toggle('visible');
+
+            // Update theme toggle text
+            const theme = document.documentElement.getAttribute('data-theme');
+            const themeIcon = document.getElementById('themeIconMenu');
+            const themeText = document.getElementById('themeTextMenu');
+            if (themeIcon && themeText) {
+                if (theme === 'dark') {
+                    themeIcon.className = 'fas fa-sun';
+                    themeText.textContent = 'Light Mode';
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                    themeText.textContent = 'Dark Mode';
+                }
+            }
+        }
+
+        function closePageMenu() {
+            document.getElementById('pageMenuDropdown').classList.remove('visible');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('pageMenuDropdown');
+            if (menu && !menu.contains(e.target)) {
+                menu.classList.remove('visible');
+            }
+        });
+
+        function exportPage() {
+            const pageId = getPageId();
+            if (pageId) {
+                window.open(`/notes/api/page/${pageId}/export?format=markdown`, '_blank');
+            }
+        }
+
+        function openShortcuts() {
+            document.getElementById('shortcutsModal').classList.add('visible');
         }
 
         function toggleWorkspaceMenu() {

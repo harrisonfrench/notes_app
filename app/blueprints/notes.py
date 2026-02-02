@@ -26,47 +26,8 @@ notes = Blueprint('notes', __name__)
 pages_store = {
     "1": {
         "id": "1",
-        "title": "Getting Started",
-        "icon": "&#128221;",
-        "cover": None,
-        "cover_position": 50,
-        "parent_id": None,
-        "is_favorite": False,
-        "is_deleted": False,
-        "full_width": False,
-        "small_text": False,
-        "blocks": [
-            {"id": "b1", "type": "heading1", "content": "Welcome to Your Workspace"},
-            {"id": "b2", "type": "text", "content": "This is your personal workspace. Create pages, write notes, and organize your thoughts."},
-            {"id": "b3", "type": "callout", "content": "Tip: Type '/' to see all available block types!", "icon": "&#128161;", "color": "blue"},
-            {"id": "b4", "type": "heading2", "content": "Quick Start Guide"},
-            {"id": "b5", "type": "todo", "content": "Create your first page", "checked": False},
-            {"id": "b6", "type": "todo", "content": "Try different block types", "checked": False},
-            {"id": "b7", "type": "todo", "content": "Customize with themes", "checked": False},
-            {"id": "b8", "type": "divider", "content": ""},
-            {"id": "b9", "type": "heading2", "content": "Keyboard Shortcuts"},
-            {"id": "b10", "type": "bullet", "content": "<b>Cmd/Ctrl + K</b> - Quick search"},
-            {"id": "b11", "type": "bullet", "content": "<b>Cmd/Ctrl + N</b> - New page"},
-            {"id": "b12", "type": "bullet", "content": "<b>Cmd/Ctrl + /</b> - Show all shortcuts"},
-            {"id": "b13", "type": "toggle", "content": "More formatting tips", "children": [
-                {"id": "b13a", "type": "text", "content": "Select text to see formatting options"},
-                {"id": "b13b", "type": "text", "content": "Use ** for bold, _ for italic"},
-                {"id": "b13c", "type": "text", "content": "Use ` for inline code"}
-            ]},
-        ],
-        "comments": [
-            {"id": "c1", "author": "You", "text": "Welcome to your notes!", "created_at": "2024-01-01T10:00:00"}
-        ],
-        "history": [
-            {"id": "h1", "author": "You", "created_at": "2024-01-01T10:00:00", "action": "Created page"}
-        ],
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": "2024-01-01T00:00:00"
-    },
-    "2": {
-        "id": "2",
-        "title": "My Tasks",
-        "icon": "&#9989;",
+        "title": "Welcome",
+        "icon": "&#128075;",
         "cover": "gradient-purple",
         "cover_position": 50,
         "parent_id": None,
@@ -75,98 +36,16 @@ pages_store = {
         "full_width": False,
         "small_text": False,
         "blocks": [
-            {"id": "t1", "type": "heading1", "content": "Task Board"},
-            {"id": "t2", "type": "text", "content": "Track your daily tasks and projects here."},
-            {"id": "t3", "type": "divider", "content": ""},
-            {"id": "t4", "type": "heading2", "content": "Today"},
-            {"id": "t5", "type": "todo", "content": "Review project proposal", "checked": True},
-            {"id": "t6", "type": "todo", "content": "Schedule team meeting", "checked": False},
-            {"id": "t7", "type": "todo", "content": "Update documentation", "checked": False},
-            {"id": "t8", "type": "heading2", "content": "This Week"},
-            {"id": "t9", "type": "todo", "content": "Complete code review", "checked": False},
-            {"id": "t10", "type": "todo", "content": "Prepare presentation", "checked": False},
-        ],
-        "comments": [],
-        "history": [],
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": "2024-01-01T00:00:00"
-    },
-    "3": {
-        "id": "3",
-        "title": "Project Ideas",
-        "icon": "&#128161;",
-        "cover": None,
-        "cover_position": 50,
-        "parent_id": None,
-        "is_favorite": False,
-        "is_deleted": False,
-        "full_width": False,
-        "small_text": False,
-        "blocks": [
-            {"id": "p1", "type": "heading1", "content": "Project Ideas"},
-            {"id": "p2", "type": "quote", "content": "The best way to predict the future is to create it."},
-            {"id": "p3", "type": "divider", "content": ""},
-            {"id": "p4", "type": "heading2", "content": "Web Projects"},
-            {"id": "p5", "type": "bullet", "content": "Personal portfolio website"},
-            {"id": "p6", "type": "bullet", "content": "Blog platform with CMS"},
-            {"id": "p7", "type": "bullet", "content": "E-commerce store"},
-            {"id": "p8", "type": "heading2", "content": "Mobile Apps"},
-            {"id": "p9", "type": "bullet", "content": "Habit tracker with reminders"},
-            {"id": "p10", "type": "bullet", "content": "Recipe manager with meal planning"},
-            {"id": "p11", "type": "heading2", "content": "Code Snippet"},
-            {"id": "p12", "type": "code", "content": "function greet(name) {\n  return `Hello, ${name}!`;\n}", "language": "javascript"},
-        ],
-        "comments": [],
-        "history": [],
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": "2024-01-01T00:00:00"
-    },
-    "4": {
-        "id": "4",
-        "title": "Meeting Notes",
-        "icon": "&#128197;",
-        "cover": "gradient-green",
-        "cover_position": 50,
-        "parent_id": None,
-        "is_favorite": False,
-        "is_deleted": False,
-        "full_width": False,
-        "small_text": False,
-        "blocks": [
-            {"id": "m1", "type": "heading1", "content": "Team Meeting - Jan 2024"},
-            {"id": "m2", "type": "callout", "content": "Weekly sync meeting notes", "icon": "&#128197;", "color": "green"},
-            {"id": "m3", "type": "heading2", "content": "Attendees"},
-            {"id": "m4", "type": "bullet", "content": "Alice - Product Manager"},
-            {"id": "m5", "type": "bullet", "content": "Bob - Developer"},
-            {"id": "m6", "type": "bullet", "content": "Charlie - Designer"},
-            {"id": "m7", "type": "heading2", "content": "Agenda"},
-            {"id": "m8", "type": "numbered", "content": "Project status update"},
-            {"id": "m9", "type": "numbered", "content": "Resource allocation"},
-            {"id": "m10", "type": "numbered", "content": "Next sprint planning"},
-            {"id": "m11", "type": "heading2", "content": "Action Items"},
-            {"id": "m12", "type": "todo", "content": "Alice: Send project timeline", "checked": False},
-            {"id": "m13", "type": "todo", "content": "Bob: Review pull requests", "checked": True},
-            {"id": "m14", "type": "todo", "content": "Charlie: Create mockups", "checked": False},
-        ],
-        "comments": [],
-        "history": [],
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": "2024-01-01T00:00:00"
-    },
-    "5": {
-        "id": "5",
-        "title": "Database Example",
-        "icon": "&#128202;",
-        "cover": None,
-        "cover_position": 50,
-        "parent_id": None,
-        "is_favorite": False,
-        "is_deleted": False,
-        "full_width": True,
-        "small_text": False,
-        "blocks": [
-            {"id": "d1", "type": "heading1", "content": "Project Tracker"},
-            {"id": "d2", "type": "database", "content": "", "database_id": "db1"},
+            {"id": "b1", "type": "heading1", "content": "Welcome to Your Workspace"},
+            {"id": "b2", "type": "text", "content": "Start taking notes, organizing your thoughts, and boosting your productivity."},
+            {"id": "b3", "type": "divider", "content": ""},
+            {"id": "b4", "type": "heading2", "content": "Quick Tips"},
+            {"id": "b5", "type": "bullet", "content": "Type <b>*</b> or <b>-</b> then space to create a bullet point"},
+            {"id": "b6", "type": "bullet", "content": "Type <b>1.</b> then space to create a numbered list"},
+            {"id": "b7", "type": "bullet", "content": "Type <b>/</b> to see all block types"},
+            {"id": "b8", "type": "bullet", "content": "Press <b>Tab</b> to indent"},
+            {"id": "b9", "type": "divider", "content": ""},
+            {"id": "b10", "type": "callout", "content": "Use the Study Tools button (graduation cap) to generate flashcards and quizzes from your notes!", "icon": "&#127891;", "color": "blue"},
         ],
         "comments": [],
         "history": [],
@@ -176,71 +55,14 @@ pages_store = {
 }
 
 # Database storage for database blocks
-databases_store = {
-    "db1": {
-        "id": "db1",
-        "name": "Project Tracker",
-        "views": ["table", "board", "calendar", "gallery"],
-        "current_view": "table",
-        "properties": [
-            {"id": "title", "name": "Name", "type": "title"},
-            {"id": "status", "name": "Status", "type": "select", "options": [
-                {"id": "s1", "name": "Not started", "color": "gray"},
-                {"id": "s2", "name": "In progress", "color": "blue"},
-                {"id": "s3", "name": "Done", "color": "green"}
-            ]},
-            {"id": "priority", "name": "Priority", "type": "select", "options": [
-                {"id": "p1", "name": "Low", "color": "gray"},
-                {"id": "p2", "name": "Medium", "color": "yellow"},
-                {"id": "p3", "name": "High", "color": "red"}
-            ]},
-            {"id": "date", "name": "Due Date", "type": "date"},
-            {"id": "assignee", "name": "Assignee", "type": "person"},
-            {"id": "tags", "name": "Tags", "type": "multi_select", "options": [
-                {"id": "t1", "name": "Bug", "color": "red"},
-                {"id": "t2", "name": "Feature", "color": "blue"},
-                {"id": "t3", "name": "Documentation", "color": "purple"}
-            ]}
-        ],
-        "rows": [
-            {"id": "r1", "properties": {"title": "Homepage redesign", "status": "s2", "priority": "p3", "date": "2024-02-15", "tags": ["t2"]}},
-            {"id": "r2", "properties": {"title": "Fix login bug", "status": "s1", "priority": "p3", "date": "2024-02-10", "tags": ["t1"]}},
-            {"id": "r3", "properties": {"title": "Update API docs", "status": "s3", "priority": "p1", "date": "2024-02-05", "tags": ["t3"]}},
-            {"id": "r4", "properties": {"title": "Add dark mode", "status": "s2", "priority": "p2", "date": "2024-02-20", "tags": ["t2"]}},
-            {"id": "r5", "properties": {"title": "Performance optimization", "status": "s1", "priority": "p2", "date": "2024-02-25", "tags": ["t2"]}},
-        ],
-        "filters": [],
-        "sorts": []
-    }
-}
+databases_store = {}
 
 # Trash storage
 trash_store = []
 
 # Folders storage
-folders_store = {
-    "folder-1": {
-        "id": "folder-1",
-        "name": "School",
-        "icon": "📚",
-        "color": "#6940a5",
-        "pages": [],
-        "expanded": True,
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": "2024-01-01T00:00:00"
-    },
-    "folder-2": {
-        "id": "folder-2",
-        "name": "Work",
-        "icon": "💼",
-        "color": "#2383e2",
-        "pages": [],
-        "expanded": True,
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": "2024-01-01T00:00:00"
-    }
-}
-next_folder_id = 3
+folders_store = {}
+next_folder_id = 1
 
 # Templates
 templates = {
@@ -3020,104 +2842,14 @@ def generate_quiz(text, question_count, difficulty):
 # ==================== CALENDAR & CLASSES ====================
 
 # Calendar Events Storage
-calendar_events = {
-    "e1": {
-        "id": "e1",
-        "title": "Team Meeting",
-        "description": "Weekly sync with the team",
-        "start": "2024-02-15T10:00:00",
-        "end": "2024-02-15T11:00:00",
-        "all_day": False,
-        "color": "#2383e2",
-        "type": "meeting",
-        "class_id": None,
-        "recurrence": None,
-        "reminder": 15,
-        "location": "Conference Room A",
-        "attendees": []
-    },
-    "e2": {
-        "id": "e2",
-        "title": "Project Deadline",
-        "description": "Submit final deliverables",
-        "start": "2024-02-20T23:59:00",
-        "end": "2024-02-20T23:59:00",
-        "all_day": True,
-        "color": "#e03e3e",
-        "type": "deadline",
-        "class_id": None,
-        "recurrence": None,
-        "reminder": 1440,
-        "location": None,
-        "attendees": []
-    }
-}
+calendar_events = {}
 
 # Classes Storage
-classes_store = {
-    "c1": {
-        "id": "c1",
-        "name": "Introduction to Computer Science",
-        "code": "CS101",
-        "color": "#6940a5",
-        "icon": "💻",
-        "instructor": {
-            "name": "Dr. Sarah Johnson",
-            "email": "sjohnson@university.edu",
-            "office": "Engineering Building 302",
-            "office_hours": "Mon/Wed 2-4pm"
-        },
-        "schedule": {
-            "days": ["monday", "wednesday", "friday"],
-            "start_time": "09:00",
-            "end_time": "09:50",
-            "location": "Science Hall 101"
-        },
-        "syllabus": None,
-        "syllabus_parsed": False,
-        "grade": None,
-        "credits": 3,
-        "term": "Spring 2024",
-        "description": "Fundamentals of programming and computational thinking",
-        "resources": [],
-        "announcements": [],
-        "assignments": [],
-        "created_at": "2024-01-15T00:00:00"
-    },
-    "c2": {
-        "id": "c2",
-        "name": "Calculus II",
-        "code": "MATH202",
-        "color": "#0f7b6c",
-        "icon": "📐",
-        "instructor": {
-            "name": "Prof. Michael Chen",
-            "email": "mchen@university.edu",
-            "office": "Math Building 205",
-            "office_hours": "Tue/Thu 1-3pm"
-        },
-        "schedule": {
-            "days": ["tuesday", "thursday"],
-            "start_time": "11:00",
-            "end_time": "12:15",
-            "location": "Math Building 150"
-        },
-        "syllabus": None,
-        "syllabus_parsed": False,
-        "grade": None,
-        "credits": 4,
-        "term": "Spring 2024",
-        "description": "Integration techniques, sequences, and series",
-        "resources": [],
-        "announcements": [],
-        "assignments": [],
-        "created_at": "2024-01-15T00:00:00"
-    }
-}
+classes_store = {}
 
-next_event_id = 100
-next_class_id = 10
-next_assignment_id = 100
+next_event_id = 1
+next_class_id = 1
+next_assignment_id = 1
 
 
 # ==================== CALENDAR API ====================
