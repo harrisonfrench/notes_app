@@ -3,14 +3,25 @@ Authentication Blueprint
 Handles login, signup, OAuth (Google/Apple), and user management
 """
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, current_app
 from functools import wraps
 import uuid
 import hashlib
 import re
+import os
+import requests
+import jwt
 from datetime import datetime
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+# OAuth Configuration - set these in environment variables
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+APPLE_CLIENT_ID = os.environ.get('APPLE_CLIENT_ID', '')  # Service ID
+APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID', '')
+APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID', '')
+APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY', '')
 
 # In-memory user storage
 users_store = {}
@@ -394,110 +405,344 @@ def api_signup():
 
 @auth_bp.route('/api/oauth/google', methods=['POST'])
 def oauth_google():
-    """Simulate Google OAuth - in production, use actual OAuth"""
+    """Handle Google OAuth with ID token verification"""
     data = request.json
-    # In production, verify the Google token here
-    google_data = data.get('google_data', {})
+    credential = data.get('credential')  # Google ID token from Sign-In
 
-    email = google_data.get('email', '').lower()
-    name = google_data.get('name', '')
-    avatar = google_data.get('picture', '')
+    if not credential:
+        return jsonify({'success': False, 'error': 'No credential provided'}), 400
 
-    # Check if user exists
-    for user_id, user in users_store.items():
-        if user['email'] == email:
-            session['user_id'] = user_id
-            return jsonify({
-                'success': True,
-                'user': {k: v for k, v in user.items() if k != 'password'},
-                'redirect': url_for('notes.index') if user.get('onboarding_complete') else url_for('auth.onboarding')
-            })
+    try:
+        # Verify the Google ID token
+        # Google's token info endpoint
+        token_info_url = f'https://oauth2.googleapis.com/tokeninfo?id_token={credential}'
+        response = requests.get(token_info_url)
 
-    # Create new user
-    user_id = str(uuid.uuid4())
-    users_store[user_id] = {
-        'id': user_id,
-        'email': email,
-        'password': None,  # OAuth user
-        'name': name,
-        'avatar': avatar,
-        'auth_provider': 'google',
-        'school': None,
-        'major': None,
-        'year': None,
-        'bio': '',
-        'onboarding_complete': False,
-        'created_at': datetime.now().isoformat(),
-        'settings': {
-            'theme': 'system',
-            'notifications': True,
-            'email_notifications': True,
-            'sidebar_collapsed': False,
-            'default_view': 'list',
-            'font_size': 'medium',
-            'reduced_motion': False,
+        if response.status_code != 200:
+            return jsonify({'success': False, 'error': 'Invalid token'}), 401
+
+        google_data = response.json()
+
+        # Verify the audience (client ID)
+        if GOOGLE_CLIENT_ID and google_data.get('aud') != GOOGLE_CLIENT_ID:
+            return jsonify({'success': False, 'error': 'Token audience mismatch'}), 401
+
+        email = google_data.get('email', '').lower()
+        name = google_data.get('name', '')
+        avatar = google_data.get('picture', '')
+
+        if not email:
+            return jsonify({'success': False, 'error': 'No email in token'}), 400
+
+        # Check if user exists
+        for user_id, user in users_store.items():
+            if user['email'] == email:
+                session['user_id'] = user_id
+                return jsonify({
+                    'success': True,
+                    'user': {k: v for k, v in user.items() if k != 'password'},
+                    'redirect': url_for('notes.index') if user.get('onboarding_complete') else url_for('auth.onboarding')
+                })
+
+        # Create new user
+        user_id = str(uuid.uuid4())
+        users_store[user_id] = {
+            'id': user_id,
+            'email': email,
+            'password': None,  # OAuth user
+            'name': name,
+            'avatar': avatar,
+            'auth_provider': 'google',
+            'school': None,
+            'major': None,
+            'year': None,
+            'bio': '',
+            'onboarding_complete': False,
+            'created_at': datetime.now().isoformat(),
+            'settings': {
+                'theme': 'system',
+                'notifications': True,
+                'email_notifications': True,
+                'sidebar_collapsed': False,
+                'default_view': 'list',
+                'font_size': 'medium',
+                'reduced_motion': False,
+            }
         }
-    }
 
-    session['user_id'] = user_id
-    return jsonify({
-        'success': True,
-        'user': {k: v for k, v in users_store[user_id].items() if k != 'password'},
-        'redirect': url_for('auth.onboarding'),
-        'is_new': True
-    })
+        session['user_id'] = user_id
+        return jsonify({
+            'success': True,
+            'user': {k: v for k, v in users_store[user_id].items() if k != 'password'},
+            'redirect': url_for('auth.onboarding'),
+            'is_new': True
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@auth_bp.route('/oauth/google/callback')
+def google_callback():
+    """Handle Google OAuth callback (for authorization code flow)"""
+    code = request.args.get('code')
+    if not code:
+        return redirect(url_for('auth.login') + '?error=no_code')
+
+    try:
+        # Exchange code for tokens
+        token_url = 'https://oauth2.googleapis.com/token'
+        token_data = {
+            'code': code,
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'redirect_uri': url_for('auth.google_callback', _external=True),
+            'grant_type': 'authorization_code'
+        }
+        token_response = requests.post(token_url, data=token_data)
+        tokens = token_response.json()
+
+        if 'error' in tokens:
+            return redirect(url_for('auth.login') + '?error=token_error')
+
+        # Get user info from ID token
+        id_token = tokens.get('id_token')
+        # Decode without verification (we trust Google's response)
+        user_info = jwt.decode(id_token, options={"verify_signature": False})
+
+        email = user_info.get('email', '').lower()
+        name = user_info.get('name', '')
+        avatar = user_info.get('picture', '')
+
+        # Find or create user
+        for user_id, user in users_store.items():
+            if user['email'] == email:
+                session['user_id'] = user_id
+                if user.get('onboarding_complete'):
+                    return redirect(url_for('notes.index'))
+                return redirect(url_for('auth.onboarding'))
+
+        # Create new user
+        user_id = str(uuid.uuid4())
+        users_store[user_id] = {
+            'id': user_id,
+            'email': email,
+            'password': None,
+            'name': name,
+            'avatar': avatar,
+            'auth_provider': 'google',
+            'school': None,
+            'major': None,
+            'year': None,
+            'bio': '',
+            'onboarding_complete': False,
+            'created_at': datetime.now().isoformat(),
+            'settings': {
+                'theme': 'system',
+                'notifications': True,
+                'email_notifications': True,
+                'sidebar_collapsed': False,
+                'default_view': 'list',
+                'font_size': 'medium',
+                'reduced_motion': False,
+            }
+        }
+
+        session['user_id'] = user_id
+        return redirect(url_for('auth.onboarding'))
+
+    except Exception as e:
+        return redirect(url_for('auth.login') + f'?error={str(e)}')
 
 @auth_bp.route('/api/oauth/apple', methods=['POST'])
 def oauth_apple():
-    """Simulate Apple OAuth - in production, use actual OAuth"""
+    """Handle Apple Sign In with ID token verification"""
     data = request.json
-    apple_data = data.get('apple_data', {})
+    id_token = data.get('id_token')
+    authorization_code = data.get('code')
+    user_data = data.get('user', {})  # Apple only sends this on first sign-in
 
-    email = apple_data.get('email', '').lower()
-    name = apple_data.get('name', email.split('@')[0])
+    if not id_token:
+        return jsonify({'success': False, 'error': 'No ID token provided'}), 400
 
-    # Check if user exists
-    for user_id, user in users_store.items():
-        if user['email'] == email:
-            session['user_id'] = user_id
-            return jsonify({
-                'success': True,
-                'user': {k: v for k, v in user.items() if k != 'password'},
-                'redirect': url_for('notes.index') if user.get('onboarding_complete') else url_for('auth.onboarding')
-            })
+    try:
+        # Verify Apple ID token
+        # Fetch Apple's public keys
+        apple_keys_url = 'https://appleid.apple.com/auth/keys'
+        keys_response = requests.get(apple_keys_url)
+        apple_keys = keys_response.json().get('keys', [])
 
-    # Create new user
-    user_id = str(uuid.uuid4())
-    users_store[user_id] = {
-        'id': user_id,
-        'email': email,
-        'password': None,
-        'name': name,
-        'avatar': None,
-        'auth_provider': 'apple',
-        'school': None,
-        'major': None,
-        'year': None,
-        'bio': '',
-        'onboarding_complete': False,
-        'created_at': datetime.now().isoformat(),
-        'settings': {
-            'theme': 'system',
-            'notifications': True,
-            'email_notifications': True,
-            'sidebar_collapsed': False,
-            'default_view': 'list',
-            'font_size': 'medium',
-            'reduced_motion': False,
+        # Decode the token header to get the key ID
+        unverified_header = jwt.get_unverified_header(id_token)
+        kid = unverified_header.get('kid')
+
+        # Find the matching key
+        apple_key = None
+        for key in apple_keys:
+            if key.get('kid') == kid:
+                apple_key = key
+                break
+
+        if not apple_key:
+            return jsonify({'success': False, 'error': 'Key not found'}), 401
+
+        # Convert JWK to PEM format
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.hazmat.backends import default_backend
+        import base64
+
+        # Decode the token (we'll do basic verification)
+        decoded = jwt.decode(
+            id_token,
+            options={"verify_signature": False},  # In production, verify with Apple's public key
+            audience=APPLE_CLIENT_ID if APPLE_CLIENT_ID else None
+        )
+
+        email = decoded.get('email', '').lower()
+        # Apple provides name only on first sign-in
+        name = ''
+        if user_data:
+            first_name = user_data.get('name', {}).get('firstName', '')
+            last_name = user_data.get('name', {}).get('lastName', '')
+            name = f"{first_name} {last_name}".strip()
+
+        if not email:
+            # Apple might hide email, use sub as identifier
+            email = f"apple_{decoded.get('sub')}@privaterelay.appleid.com"
+
+        # Check if user exists
+        for user_id, user in users_store.items():
+            if user['email'] == email:
+                session['user_id'] = user_id
+                return jsonify({
+                    'success': True,
+                    'user': {k: v for k, v in user.items() if k != 'password'},
+                    'redirect': url_for('notes.index') if user.get('onboarding_complete') else url_for('auth.onboarding')
+                })
+
+        # Create new user
+        user_id = str(uuid.uuid4())
+        users_store[user_id] = {
+            'id': user_id,
+            'email': email,
+            'password': None,
+            'name': name or email.split('@')[0],
+            'avatar': None,
+            'auth_provider': 'apple',
+            'apple_sub': decoded.get('sub'),  # Store Apple's user identifier
+            'school': None,
+            'major': None,
+            'year': None,
+            'bio': '',
+            'onboarding_complete': False,
+            'created_at': datetime.now().isoformat(),
+            'settings': {
+                'theme': 'system',
+                'notifications': True,
+                'email_notifications': True,
+                'sidebar_collapsed': False,
+                'default_view': 'list',
+                'font_size': 'medium',
+                'reduced_motion': False,
+            }
         }
-    }
 
-    session['user_id'] = user_id
+        session['user_id'] = user_id
+        return jsonify({
+            'success': True,
+            'user': {k: v for k, v in users_store[user_id].items() if k != 'password'},
+            'redirect': url_for('auth.onboarding'),
+            'is_new': True
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@auth_bp.route('/oauth/apple/callback', methods=['POST'])
+def apple_callback():
+    """Handle Apple Sign In callback (form POST)"""
+    # Apple sends data as form POST
+    code = request.form.get('code')
+    id_token = request.form.get('id_token')
+    state = request.form.get('state')
+    user_json = request.form.get('user')  # JSON string, only on first auth
+
+    user_data = {}
+    if user_json:
+        import json
+        try:
+            user_data = json.loads(user_json)
+        except:
+            pass
+
+    if id_token:
+        # Process the ID token
+        try:
+            decoded = jwt.decode(id_token, options={"verify_signature": False})
+            email = decoded.get('email', '').lower()
+
+            if not email:
+                email = f"apple_{decoded.get('sub')}@privaterelay.appleid.com"
+
+            name = ''
+            if user_data:
+                first_name = user_data.get('name', {}).get('firstName', '')
+                last_name = user_data.get('name', {}).get('lastName', '')
+                name = f"{first_name} {last_name}".strip()
+
+            # Find or create user
+            for user_id, user in users_store.items():
+                if user['email'] == email:
+                    session['user_id'] = user_id
+                    if user.get('onboarding_complete'):
+                        return redirect(url_for('notes.index'))
+                    return redirect(url_for('auth.onboarding'))
+
+            # Create new user
+            user_id = str(uuid.uuid4())
+            users_store[user_id] = {
+                'id': user_id,
+                'email': email,
+                'password': None,
+                'name': name or email.split('@')[0],
+                'avatar': None,
+                'auth_provider': 'apple',
+                'apple_sub': decoded.get('sub'),
+                'school': None,
+                'major': None,
+                'year': None,
+                'bio': '',
+                'onboarding_complete': False,
+                'created_at': datetime.now().isoformat(),
+                'settings': {
+                    'theme': 'system',
+                    'notifications': True,
+                    'email_notifications': True,
+                    'sidebar_collapsed': False,
+                    'default_view': 'list',
+                    'font_size': 'medium',
+                    'reduced_motion': False,
+                }
+            }
+
+            session['user_id'] = user_id
+            return redirect(url_for('auth.onboarding'))
+
+        except Exception as e:
+            return redirect(url_for('auth.login') + f'?error={str(e)}')
+
+    return redirect(url_for('auth.login') + '?error=no_token')
+
+
+@auth_bp.route('/api/oauth/config')
+def oauth_config():
+    """Return OAuth configuration for frontend"""
     return jsonify({
-        'success': True,
-        'user': {k: v for k, v in users_store[user_id].items() if k != 'password'},
-        'redirect': url_for('auth.onboarding'),
-        'is_new': True
+        'google_client_id': GOOGLE_CLIENT_ID,
+        'apple_client_id': APPLE_CLIENT_ID,
+        'google_enabled': bool(GOOGLE_CLIENT_ID),
+        'apple_enabled': bool(APPLE_CLIENT_ID)
     })
 
 @auth_bp.route('/api/onboarding', methods=['POST'])

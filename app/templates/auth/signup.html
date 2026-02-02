@@ -6,6 +6,10 @@
     <title>Sign Up - NotesApp</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Apple Sign-In -->
+    <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
     <style>
         :root {
             --bg-primary: #ffffff;
@@ -513,19 +517,13 @@
             </div>
 
             <div class="oauth-buttons">
-                <button class="oauth-btn google" onclick="signupWithGoogle()">
-                    <svg width="20" height="20" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Continue with Google
-                </button>
-                <button class="oauth-btn apple" onclick="signupWithApple()">
+                <!-- Google Sign-In Button -->
+                <div id="googleSignInBtn" class="oauth-btn google" style="position: relative; min-height: 44px;"></div>
+                <!-- Apple Sign-In Button -->
+                <div id="appleid-signin" class="oauth-btn apple" onclick="signupWithApple()">
                     <i class="fab fa-apple"></i>
                     Continue with Apple
-                </button>
+                </div>
             </div>
 
             <div class="auth-divider">or sign up with email</div>
@@ -683,50 +681,123 @@
             }
         }
 
-        async function signupWithGoogle() {
-            const mockGoogleData = {
-                email: 'newuser@gmail.com',
-                name: 'New Google User',
-                picture: 'https://ui-avatars.com/api/?name=New+User&background=4285F4&color=fff'
-            };
+        // OAuth Configuration
+        let oauthConfig = { google_client_id: '', apple_client_id: '', google_enabled: false, apple_enabled: false };
+
+        // Load OAuth config on page load
+        async function loadOAuthConfig() {
+            try {
+                const res = await fetch('/auth/api/oauth/config');
+                oauthConfig = await res.json();
+
+                // Initialize Google Sign-In if enabled
+                if (oauthConfig.google_enabled && oauthConfig.google_client_id) {
+                    initGoogleSignIn(oauthConfig.google_client_id);
+                }
+
+                // Initialize Apple Sign-In if enabled
+                if (oauthConfig.apple_enabled && oauthConfig.apple_client_id) {
+                    initAppleSignIn(oauthConfig.apple_client_id);
+                }
+            } catch (err) {
+                console.log('OAuth config not available');
+            }
+        }
+
+        // Initialize Google Sign-In
+        function initGoogleSignIn(clientId) {
+            if (typeof google !== 'undefined' && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: clientId,
+                    callback: handleGoogleCredential,
+                    auto_select: false,
+                    cancel_on_tap_outside: true
+                });
+
+                google.accounts.id.renderButton(
+                    document.getElementById('googleSignInBtn'),
+                    {
+                        theme: 'outline',
+                        size: 'large',
+                        width: '100%',
+                        text: 'continue_with'
+                    }
+                );
+            }
+        }
+
+        // Handle Google credential response
+        async function handleGoogleCredential(response) {
+            if (!response.credential) {
+                showError('Google sign-up failed. Please try again.');
+                return;
+            }
 
             try {
                 const res = await fetch('/auth/api/oauth/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ google_data: mockGoogleData })
+                    body: JSON.stringify({ credential: response.credential })
                 });
 
                 const data = await res.json();
                 if (data.success) {
                     window.location.href = data.redirect;
+                } else {
+                    showError(data.error || 'Google signup failed');
                 }
             } catch (err) {
                 showError('Google signup failed. Please try again.');
             }
         }
 
-        async function signupWithApple() {
-            const mockAppleData = {
-                email: 'newuser@icloud.com',
-                name: 'New Apple User'
-            };
-
-            try {
-                const res = await fetch('/auth/api/oauth/apple', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apple_data: mockAppleData })
+        // Initialize Apple Sign-In
+        function initAppleSignIn(clientId) {
+            if (typeof AppleID !== 'undefined') {
+                AppleID.auth.init({
+                    clientId: clientId,
+                    scope: 'name email',
+                    redirectURI: window.location.origin + '/auth/oauth/apple/callback',
+                    state: Math.random().toString(36).substring(2, 15),
+                    usePopup: true
                 });
-
-                const data = await res.json();
-                if (data.success) {
-                    window.location.href = data.redirect;
-                }
-            } catch (err) {
-                showError('Apple signup failed. Please try again.');
             }
         }
+
+        // Apple Sign-In handler
+        async function signupWithApple() {
+            if (typeof AppleID !== 'undefined' && oauthConfig.apple_enabled) {
+                try {
+                    const data = await AppleID.auth.signIn();
+
+                    const res = await fetch('/auth/api/oauth/apple', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id_token: data.authorization.id_token,
+                            code: data.authorization.code,
+                            user: data.user
+                        })
+                    });
+
+                    const result = await res.json();
+                    if (result.success) {
+                        window.location.href = result.redirect;
+                    } else {
+                        showError(result.error || 'Apple signup failed');
+                    }
+                } catch (err) {
+                    if (err.error !== 'popup_closed_by_user') {
+                        showError('Apple signup failed. Please try again.');
+                    }
+                }
+            } else {
+                showError('Apple sign-in is not configured. Please use email signup.');
+            }
+        }
+
+        // Load config when page loads
+        document.addEventListener('DOMContentLoaded', loadOAuthConfig);
     </script>
 </body>
 </html>

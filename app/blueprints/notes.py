@@ -3009,20 +3009,25 @@ def get_classes():
 
 @notes.route('/api/classes', methods=['POST'])
 def create_class():
-    """Create a new class"""
-    global next_class_id
+    """Create a new class and auto-create a folder for it"""
+    global next_class_id, next_folder_id
 
     data = request.get_json()
 
     class_id = f"c{next_class_id}"
     next_class_id += 1
 
+    class_name = data.get('name', 'Untitled Class')
+    class_code = data.get('code', '')
+    class_color = data.get('color', '#6940a5')
+    class_icon = data.get('icon', '📚')
+
     new_class = {
         'id': class_id,
-        'name': data.get('name', 'Untitled Class'),
-        'code': data.get('code', ''),
-        'color': data.get('color', '#6940a5'),
-        'icon': data.get('icon', '📚'),
+        'name': class_name,
+        'code': class_code,
+        'color': class_color,
+        'icon': class_icon,
         'instructor': data.get('instructor', {
             'name': '',
             'email': '',
@@ -3049,10 +3054,30 @@ def create_class():
 
     classes_store[class_id] = new_class
 
+    # Auto-create a folder for this class
+    folder_id = f"folder-{next_folder_id}"
+    next_folder_id += 1
+
+    folder_name = f"{class_code} - {class_name}" if class_code else class_name
+    new_folder = {
+        'id': folder_id,
+        'name': folder_name,
+        'icon': class_icon,
+        'color': class_color,
+        'page_ids': [],
+        'class_id': class_id,  # Link folder to class
+        'expanded': True,
+        'created_at': get_timestamp(),
+        'updated_at': get_timestamp()
+    }
+
+    folders_store[folder_id] = new_folder
+    new_class['folder_id'] = folder_id  # Link class to folder
+
     # Create recurring events for class schedule
     create_class_schedule_events(new_class)
 
-    return jsonify({'success': True, 'class': new_class})
+    return jsonify({'success': True, 'class': new_class, 'folder': new_folder})
 
 
 @notes.route('/api/classes/<class_id>', methods=['GET'])
