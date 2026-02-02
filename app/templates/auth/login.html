@@ -578,45 +578,26 @@
                 <p>Don't have an account? <a href="/auth/signup">Sign up for free</a></p>
             </div>
 
-            <div class="oauth-buttons">
-                <!-- Google Sign-In Button Container -->
-                <div id="googleSignInBtn" class="oauth-btn google" style="position: relative;">
-                    <div id="g_id_onload"
-                         data-client_id=""
-                         data-context="signin"
-                         data-ux_mode="popup"
-                         data-callback="handleGoogleCredential"
-                         data-auto_prompt="false">
-                    </div>
-                    <div class="g_id_signin"
-                         data-type="standard"
-                         data-shape="rectangular"
-                         data-theme="outline"
-                         data-text="continue_with"
-                         data-size="large"
-                         data-width="100%"
-                         style="width: 100%;">
-                    </div>
-                    <!-- Fallback button when Google SDK not loaded -->
-                    <button class="oauth-btn-fallback" onclick="loginWithGoogleFallback()" style="display: none;">
-                        <svg width="20" height="20" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        Continue with Google
-                    </button>
-                </div>
+            <div class="oauth-buttons" id="oauthButtons">
+                <!-- Google Sign-In Button -->
+                <button class="oauth-btn google" id="googleBtn" onclick="loginWithGoogle()" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continue with Google
+                </button>
                 <!-- Apple Sign-In Button -->
-                <div id="appleid-signin"
-                     class="oauth-btn apple"
-                     data-color="white"
-                     data-border="true"
-                     data-type="continue"
-                     onclick="loginWithApple()">
+                <button class="oauth-btn apple" id="appleBtn" onclick="loginWithApple()" style="display: none;">
                     <i class="fab fa-apple"></i>
                     Continue with Apple
+                </button>
+                <!-- Message when OAuth not configured -->
+                <div id="oauthNotConfigured" class="oauth-notice" style="display: none; text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px; color: var(--text-secondary); font-size: 14px;">
+                    <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+                    Social login coming soon. Please use email to sign in.
                 </div>
             </div>
 
@@ -750,113 +731,76 @@
                 const res = await fetch('/auth/api/oauth/config');
                 oauthConfig = await res.json();
 
-                // Initialize Google Sign-In if enabled
+                let anyOAuthEnabled = false;
+
+                // Show Google button if enabled
                 if (oauthConfig.google_enabled && oauthConfig.google_client_id) {
-                    initGoogleSignIn(oauthConfig.google_client_id);
-                } else {
-                    // Show fallback button
-                    const fallback = document.querySelector('.oauth-btn-fallback');
-                    if (fallback) fallback.style.display = 'flex';
+                    document.getElementById('googleBtn').style.display = 'flex';
+                    anyOAuthEnabled = true;
                 }
 
-                // Initialize Apple Sign-In if enabled
+                // Show Apple button if enabled
                 if (oauthConfig.apple_enabled && oauthConfig.apple_client_id) {
-                    initAppleSignIn(oauthConfig.apple_client_id);
+                    document.getElementById('appleBtn').style.display = 'flex';
+                    anyOAuthEnabled = true;
+                }
+
+                // Show notice if no OAuth configured
+                if (!anyOAuthEnabled) {
+                    document.getElementById('oauthNotConfigured').style.display = 'block';
                 }
             } catch (err) {
-                console.log('OAuth config not available, using fallback');
+                console.log('OAuth config not available');
+                document.getElementById('oauthNotConfigured').style.display = 'block';
             }
         }
 
-        // Initialize Google Sign-In
-        function initGoogleSignIn(clientId) {
-            if (typeof google !== 'undefined' && google.accounts) {
-                // Update the data-client_id attribute
-                const container = document.getElementById('g_id_onload');
-                if (container) {
-                    container.setAttribute('data-client_id', clientId);
-                }
-
-                google.accounts.id.initialize({
-                    client_id: clientId,
-                    callback: handleGoogleCredential,
-                    auto_select: false,
-                    cancel_on_tap_outside: true
-                });
-
-                google.accounts.id.renderButton(
-                    document.getElementById('googleSignInBtn'),
-                    {
-                        theme: 'outline',
-                        size: 'large',
-                        width: '100%',
-                        text: 'continue_with'
-                    }
-                );
-            }
-        }
-
-        // Handle Google credential response
-        async function handleGoogleCredential(response) {
-            if (!response.credential) {
-                showError('Google sign-in failed. Please try again.');
+        // Google Sign-In using popup
+        function loginWithGoogle() {
+            if (!oauthConfig.google_client_id) {
+                showError('Google sign-in is not configured.');
                 return;
             }
 
-            try {
-                const res = await fetch('/auth/api/oauth/google', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ credential: response.credential })
-                });
+            // Use Google's OAuth popup flow
+            const clientId = oauthConfig.google_client_id;
+            const redirectUri = encodeURIComponent(window.location.origin + '/auth/oauth/google/callback');
+            const scope = encodeURIComponent('email profile openid');
+            const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
 
-                const data = await res.json();
-                if (data.success) {
-                    window.location.href = data.redirect;
-                } else {
-                    showError(data.error || 'Google login failed');
-                }
-            } catch (err) {
-                showError('Google login failed. Please try again.');
-            }
-        }
+            // Open popup
+            const width = 500;
+            const height = 600;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
 
-        // Fallback Google login (redirect flow)
-        function loginWithGoogleFallback() {
-            if (oauthConfig.google_client_id) {
-                const redirectUri = encodeURIComponent(window.location.origin + '/auth/oauth/google/callback');
-                const scope = encodeURIComponent('email profile');
-                const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthConfig.google_client_id}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline`;
+            const popup = window.open(url, 'Google Sign In', `width=${width},height=${height},left=${left},top=${top}`);
+
+            // Check if popup was blocked
+            if (!popup) {
+                // Fallback to redirect
                 window.location.href = url;
-            } else {
-                showError('Google sign-in is not configured. Please use email login.');
             }
-        }
-
-        // Initialize Apple Sign-In
-        function initAppleSignIn(clientId) {
-            if (typeof AppleID !== 'undefined') {
-                AppleID.auth.init({
-                    clientId: clientId,
-                    scope: 'name email',
-                    redirectURI: window.location.origin + '/auth/oauth/apple/callback',
-                    state: generateState(),
-                    usePopup: true
-                });
-            }
-        }
-
-        // Generate random state for Apple auth
-        function generateState() {
-            return Math.random().toString(36).substring(2, 15);
         }
 
         // Apple Sign-In handler
         async function loginWithApple() {
-            if (typeof AppleID !== 'undefined' && oauthConfig.apple_enabled) {
+            if (!oauthConfig.apple_client_id) {
+                showError('Apple sign-in is not configured.');
+                return;
+            }
+
+            if (typeof AppleID !== 'undefined') {
                 try {
+                    AppleID.auth.init({
+                        clientId: oauthConfig.apple_client_id,
+                        scope: 'name email',
+                        redirectURI: window.location.origin + '/auth/oauth/apple/callback',
+                        state: Math.random().toString(36).substring(2, 15),
+                        usePopup: true
+                    });
+
                     const data = await AppleID.auth.signIn();
-                    // data contains authorization object with id_token, code, etc.
 
                     const res = await fetch('/auth/api/oauth/apple', {
                         method: 'POST',
@@ -864,7 +808,7 @@
                         body: JSON.stringify({
                             id_token: data.authorization.id_token,
                             code: data.authorization.code,
-                            user: data.user  // Only present on first sign-in
+                            user: data.user
                         })
                     });
 
@@ -880,7 +824,7 @@
                     }
                 }
             } else {
-                showError('Apple sign-in is not configured. Please use email login.');
+                showError('Apple Sign-In SDK not loaded.');
             }
         }
 
